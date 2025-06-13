@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::{WindowMode, WindowResolution, ExitCondition, WindowTheme}};
+
+const GAME_NAME: &str = "Absent Chroma";
 
 pub fn start(){
     let custom_window_plugin = WindowPlugin {
