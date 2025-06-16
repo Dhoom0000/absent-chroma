@@ -1,16 +1,20 @@
-use bevy::{prelude::*, window::{WindowMode, WindowResolution, ExitCondition, WindowTheme}};
-use bevy_renet::{netcode::NetcodeClientPlugin, RenetClientPlugin};
+use bevy::{
+    prelude::*,
+    window::{ExitCondition, WindowMode, WindowResolution, WindowTheme},
+};
+use bevy_renet::{RenetClientPlugin, netcode::NetcodeClientPlugin};
 
 use crate::client::network;
 
 const GAME_NAME: &str = "Absent Chroma";
 
-pub fn start(){
+pub fn start() {
     let custom_window_plugin = WindowPlugin {
         primary_window: Some(Window {
             mode: WindowMode::Windowed,
             position: WindowPosition::Centered(MonitorSelection::Current),
-            resolution: WindowResolution::new(2560./4., 1440./4.).with_scale_factor_override(1.),
+            resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
+                .with_scale_factor_override(1.),
             title: GAME_NAME.to_string(),
             name: Some(GAME_NAME.to_string()),
             resizable: true,
@@ -24,17 +28,13 @@ pub fn start(){
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(custom_window_plugin))
-        .add_plugins((RenetClientPlugin,NetcodeClientPlugin))
+        .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
         .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
-        .add_systems(Startup, (setup_camera_lights,network::connect_to_server));
+        .add_systems(Startup, (setup_camera_lights, network::connect_to_server));
 
-
-    app.run()
-        
-
-
+    app.run();
 }
 
-fn setup_camera_lights(){
+fn setup_camera_lights() {
     // initialise a camera and lights setup, with custom render graphs if needed
 }

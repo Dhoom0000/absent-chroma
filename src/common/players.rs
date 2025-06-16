@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 
-
 // The Player Component
 #[derive(Component, Debug, Default)]
 struct Player {
@@ -20,15 +19,14 @@ struct TeamPlayer {
     pub team_name: String,
 }
 
-
 // The Human Deaf Player
-#[derive(Component,Debug, Default)]
-struct Gray{
+#[derive(Component, Debug, Default)]
+struct Gray {
     pub armor: u32,
 }
 
 // The Robot Blind Player
-#[derive(Component,Debug, Default)]
-struct Note{
+#[derive(Component, Debug, Default)]
+struct Note {
     pub mana: u32,
 }
