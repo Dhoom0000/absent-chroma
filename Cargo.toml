@@ -13,11 +13,12 @@ path = "src/server_m.rs"
 
 [dependencies]
 bevy = { version = "0.16.0", features = ["dynamic_linking", "wayland"] }
-bevy_renet = { git = "https://github.com/lucaspoffo/renet.git"}
-bincode = "2.0.1"
+bevy_renet = { git = "https://github.com/lucaspoffo/renet.git", rev = "d2c5074bc232781889c26acfe68d8622b8ebd88e"}
+bincode = { version = "2.0.1", features = ["serde"] }
+fips203 = "0.4.3"
+getrandom = "0.3.3"
 local-ip-address = "0.6.5"
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
-serde = { version = "1.0.219", features = ["derive"] }
 
 
 # Enable a small amount of optimization in the dev profile.

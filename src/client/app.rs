@@ -1,10 +1,13 @@
 use bevy::{
+    log::LogPlugin,
     prelude::*,
     window::{ExitCondition, WindowMode, WindowResolution, WindowTheme},
 };
-use bevy_renet::{RenetClientPlugin, netcode::NetcodeClientPlugin};
+use bevy_renet::{
+    RenetClientPlugin, client_connected, netcode::NetcodeClientPlugin, renet::RenetClient,
+};
 
-use crate::client::network;
+use crate::client::network::{self, client_ping};
 
 const GAME_NAME: &str = "Absent Chroma";
 
@@ -26,19 +29,22 @@ pub fn start() {
         close_when_requested: true,
     };
 
+    let log_filter_plugin = LogPlugin {
+        filter: "info,wgpu_core=warn,wgpu_hal=off,rechannel=warn".into(),
+        level: bevy::log::Level::DEBUG,
+        ..default()
+    };
+
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins.set(custom_window_plugin))
-        .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
-        .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
-        .add_systems(
-            Startup,
-            (
-                setup_camera_lights,
-                network::connect_to_server,
-                network::send_message.after(network::connect_to_server),
-            ),
-        );
-    // .add_systems(Update, (network::receive_message));
+    app.add_plugins(
+        DefaultPlugins
+            .set(custom_window_plugin)
+            .set(log_filter_plugin),
+    )
+    .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
+    .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
+    .add_systems(Startup, (setup_camera_lights, network::connect_to_server))
+    .add_systems(Update, client_ping);
 
     app.run();
 }

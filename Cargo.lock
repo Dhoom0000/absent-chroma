@@ -25,9 +25,10 @@ dependencies = [
  "bevy",
  "bevy_renet",
  "bincode",
+ "fips203",
+ "getrandom 0.3.3",
  "local-ip-address",
  "log",
- "serde",
 ]
 
 [[package]]
@@ -1096,7 +1097,7 @@ dependencies = [
 [[package]]
 name = "bevy_renet"
 version = "1.0.0"
-source = "git+https://github.com/lucaspoffo/renet.git#d2c5074bc232781889c26acfe68d8622b8ebd88e"
+source = "git+https://github.com/lucaspoffo/renet.git?rev=d2c5074bc232781889c26acfe68d8622b8ebd88e#d2c5074bc232781889c26acfe68d8622b8ebd88e"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -1490,6 +1491,15 @@ name = "block"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
+
+[[package]]
+name = "block-buffer"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3078c7629b62d3f0439517fa394996acacc5cbc91c5a20d8c658e77abd503a71"
+dependencies = [
+ "generic-array",
+]
 
 [[package]]
 name = "block2"
@@ -1971,6 +1981,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "digest"
+version = "0.10.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
+dependencies = [
+ "block-buffer",
+ "crypto-common",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2125,6 +2145,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e6853b52649d4ac5c0bd02320cddc5ba956bdb407c4b75a2c6b75bf51500f8c"
 dependencies = [
  "simd-adler32",
+]
+
+[[package]]
+name = "fips203"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8bdb6454f692ca2a2b45cd554c6828c639d7f9c968cf83a678899ec4443a280"
+dependencies = [
+ "rand_core",
+ "sha3",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
@@ -2691,6 +2723,15 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "keccak"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+dependencies = [
+ "cpufeatures",
 ]
 
 [[package]]
@@ -3662,9 +3703,9 @@ dependencies = [
 
 [[package]]
 name = "r-efi"
-version = "5.2.0"
+version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74765f6d916ee2faa39bc8e68e4f3ed8949b48cccdac59983d287a7cb71ce9c5"
+checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
 name = "radsort"
@@ -3817,7 +3858,7 @@ checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 [[package]]
 name = "renet"
 version = "1.0.0"
-source = "git+https://github.com/lucaspoffo/renet.git#d2c5074bc232781889c26acfe68d8622b8ebd88e"
+source = "git+https://github.com/lucaspoffo/renet.git?rev=d2c5074bc232781889c26acfe68d8622b8ebd88e#d2c5074bc232781889c26acfe68d8622b8ebd88e"
 dependencies = [
  "bevy_ecs",
  "bytes",
@@ -3828,7 +3869,7 @@ dependencies = [
 [[package]]
 name = "renet_netcode"
 version = "1.0.0"
-source = "git+https://github.com/lucaspoffo/renet.git#d2c5074bc232781889c26acfe68d8622b8ebd88e"
+source = "git+https://github.com/lucaspoffo/renet.git?rev=d2c5074bc232781889c26acfe68d8622b8ebd88e#d2c5074bc232781889c26acfe68d8622b8ebd88e"
 dependencies = [
  "bevy_ecs",
  "log",
@@ -3839,7 +3880,7 @@ dependencies = [
 [[package]]
 name = "renetcode"
 version = "1.0.0"
-source = "git+https://github.com/lucaspoffo/renet.git#d2c5074bc232781889c26acfe68d8622b8ebd88e"
+source = "git+https://github.com/lucaspoffo/renet.git?rev=d2c5074bc232781889c26acfe68d8622b8ebd88e#d2c5074bc232781889c26acfe68d8622b8ebd88e"
 dependencies = [
  "chacha20poly1305",
  "log",
@@ -4025,6 +4066,16 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "sha3"
+version = "0.10.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
+dependencies = [
+ "digest",
+ "keccak",
 ]
 
 [[package]]
@@ -4384,9 +4435,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.29"
+version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1ffbcf9c6f6b99d386e7444eb608ba646ae452a36b39737deb9663b610f662"
+checksum = "81383ab64e72a7a8b8e13130c49e3dab29def6d0c7d76a03087b3cf71c5c6903"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5669,3 +5720,17 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.103",
+]

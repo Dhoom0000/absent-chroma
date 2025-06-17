@@ -1,18 +1,18 @@
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
+use bincode::*;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Encode, Decode, Debug)]
 pub enum ClientMessage {
     Ping,
     Hello(String),
-    Move(Vec3),
+    Move([f32; 3]),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Encode, Decode, Debug)]
 pub enum ServerMessage {
     Pong,
     Welcome(u64),
     Broadcast(String),
 }
 
-pub const PROTOCOL_ID: u64 = 1000;
+pub const PROTOCOL_ID: u64 = 69;

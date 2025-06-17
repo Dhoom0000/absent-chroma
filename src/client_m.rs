@@ -2,6 +2,8 @@
 #![allow(unused_imports)]
 #![allow(unused_parens)]
 
+pub use bevy::prelude::*;
+
 mod client; //import the client module
 mod common; //import the common module
 

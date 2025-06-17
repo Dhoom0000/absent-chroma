@@ -19,10 +19,7 @@ pub fn start() {
     app.add_plugins(RenetServerPlugin);
     app.add_plugins(NetcodeServerPlugin);
     app.add_systems(Startup, create_renet_server);
-    app.add_systems(
-        Update,
-        (server_events, receive_message.after(create_renet_server)),
-    );
+    app.add_systems(Update, (server_events, receive_ping));
 
     app.run();
 }
