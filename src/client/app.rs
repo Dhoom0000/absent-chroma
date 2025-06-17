@@ -30,7 +30,15 @@ pub fn start() {
     app.add_plugins(DefaultPlugins.set(custom_window_plugin))
         .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
         .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
-        .add_systems(Startup, (setup_camera_lights, network::connect_to_server));
+        .add_systems(
+            Startup,
+            (
+                setup_camera_lights,
+                network::connect_to_server,
+                network::send_message.after(network::connect_to_server),
+            ),
+        );
+    // .add_systems(Update, (network::receive_message));
 
     app.run();
 }

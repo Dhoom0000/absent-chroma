@@ -74,3 +74,4 @@
 
 ## Extras
 - [https://thegrimsey.net/2022/10/15/Bevy-Part-Two.html]
+- [https://dev.to/renuo/multiplayer-in-rust-using-renet-and-bevy-17p6]
