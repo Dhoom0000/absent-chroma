@@ -52,3 +52,6 @@ inherits = "release"
 opt-level = "s"
 # Strip all debugging information from the binary to slightly reduce file size.
 strip = "debuginfo"
+
+[build-dependencies]
+dotenvy = "0.15.7"

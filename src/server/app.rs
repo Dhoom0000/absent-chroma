@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{app::ScheduleRunnerPlugin, log::LogPlugin, prelude::*};
 use bevy_renet::{RenetServerPlugin, netcode::NetcodeServerPlugin};
 
-use crate::server::network::*;
+use crate::{common::user::{ConnectedUsers}, server::network::*};
 
 pub fn start() {
     let mut app = App::new();
@@ -18,6 +18,7 @@ pub fn start() {
 
     app.add_plugins(RenetServerPlugin);
     app.add_plugins(NetcodeServerPlugin);
+    app.insert_resource(ConnectedUsers::default());
     app.add_systems(Startup, create_renet_server);
     app.add_systems(Update, (server_events, receive_ping));
 

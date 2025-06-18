@@ -7,7 +7,7 @@ use bevy_renet::{
     RenetClientPlugin, client_connected, netcode::NetcodeClientPlugin, renet::RenetClient,
 };
 
-use crate::client::network::{self, client_ping};
+use crate::{client::network::{self, client_ping}, common::user::UserLogin};
 
 const GAME_NAME: &str = "Absent Chroma";
 
@@ -43,8 +43,9 @@ pub fn start() {
     )
     .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
     .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
+    .insert_resource(UserLogin::default())
     .add_systems(Startup, (setup_camera_lights, network::connect_to_server))
-    .add_systems(Update, client_ping);
+    .add_systems(Update, client_ping.run_if(client_connected));
 
     app.run();
 }

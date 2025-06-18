@@ -9,27 +9,18 @@ use bevy_renet::{
     renet::{ConnectionConfig, DefaultChannel, RenetClient},
     *,
 };
-use local_ip_address::local_ip;
-use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
 use fips203::traits::SerDes;
+use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
+use local_ip_address::local_ip;
 
 use crate::common::{
     self,
-    network::{ClientMessage, PROTOCOL_ID},
+    network::{get_private_key_env, string_to_fixed_bytes, ClientMessage, PROTOCOL_ID}, user::UserLogin,
 };
 
-pub fn connect_to_server(mut commands: Commands) {
-    let handshake_channel = renet::ChannelConfig {
-        channel_id: 7,
-        send_type: renet::SendType::ReliableOrdered { resend_time: Duration::from_millis(300) },
-        max_memory_usage_bytes: 5 * 1024 * 1024,
-    };
-    // Insert a RenetClient resource
-    let client = RenetClient::new(ConnectionConfig {
-        server_channels_config: vec![handshake_channel.clone()],
-        client_channels_config:vec![handshake_channel],
-        ..Default::default()
-    });
+pub fn connect_to_server(mut commands: Commands,user:Res<UserLogin>) {
+    // Insert a RenetClient
+    let client = RenetClient::new(ConnectionConfig::default());
     commands.insert_resource(client);
 
     // get current system time
@@ -43,41 +34,63 @@ pub fn connect_to_server(mut commands: Commands) {
     // A local server
     let server_addr = SocketAddr::new(local_ip().unwrap(), 42069);
 
-    // create a randomized private key
-    // let mut private_key = [0u8; 32];
-    // getrandom::fill(&mut private_key).unwrap();
+    // build.rs loads an environment private key; retrieve and parse it
+    let private_key = get_private_key_env();
 
-    // setup authentication
-    // let connect_token = ConnectToken::generate(
-    //     current_time,
-    //     PROTOCOL_ID,
-    //     600,
-    //     client_id,
-    //     15,
-    //     vec![server_addr],
-    //     None,
-    //     &private_key,
-    // )
-    // .unwrap();
-    let authentication = ClientAuthentication::Unsecure { protocol_id: PROTOCOL_ID, client_id, server_addr, user_data:None };
+    let anon_username = &string_to_fixed_bytes("Anon");
+
+    let user_data = match &*user {
+        UserLogin::NotLoggedIn => {
+            Some(anon_username)
+        }
+        UserLogin::IsLoggedIn{username,email:_,password:_} => {
+            Some(username)
+        }
+
+    };
+
+    // create a connection token to use for authentication
+    let connect_token = ConnectToken::generate(
+        current_time,
+        PROTOCOL_ID,
+        30,
+        client_id,
+        10 * 60,
+        vec![server_addr],
+        user_data,
+        &private_key,
+    )
+    .unwrap();
+
+    let authentication = ClientAuthentication::Secure { connect_token };
 
     // Open a UDP socket and configure a transport resource to use
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
     commands.insert_resource(transport);
-
 }
 
-fn establish_secure_connection(mut client: ResMut<RenetClient>){
-    let raw_key_bytes = client.receive_message(7).unwrap();
+fn establish_secure_connection(mut client: ResMut<RenetClient>) {
+    let raw_key_bytes = client
+        .receive_message(DefaultChannel::ReliableOrdered)
+        .unwrap();
 
-    let deserialized_key = EncapsKey::try_from_bytes(bincode::decode_from_slice::<[u8;800],_>(&raw_key_bytes, bincode::config::standard()).unwrap().0).unwrap();
+    let deserialized_key = EncapsKey::try_from_bytes(
+        bincode::decode_from_slice::<[u8; 800], _>(&raw_key_bytes, bincode::config::standard())
+            .unwrap()
+            .0,
+    )
+    .unwrap();
 
-    let (ssk,ciphertext) = deserialized_key.try_encaps().unwrap();
+    let (ssk, ciphertext) = deserialized_key.try_encaps().unwrap();
 
-    let message = bincode::encode_to_vec::<[u8;768],_>(ciphertext.into_bytes(), bincode::config::standard()).unwrap();
+    let message = bincode::encode_to_vec::<[u8; 768], _>(
+        ciphertext.into_bytes(),
+        bincode::config::standard(),
+    )
+    .unwrap();
 
-    client.send_message(7, message);
+    client.send_message(DefaultChannel::ReliableOrdered, message);
 }
 
 pub fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<KeyCode>>) {
