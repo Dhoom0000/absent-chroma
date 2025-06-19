@@ -12,12 +12,7 @@ use bevy_renet::{
 };
 use local_ip_address::local_ip;
 
-use crate::common::{
-    network::{
-        ClientMessage, KEMServerState, PROTOCOL_ID, fixed_bytes_to_string, get_private_key_env,
-    },
-    user::ConnectedUsers,
-};
+use crate::common::{network::*, user::ConnectedUsers};
 
 use fips203::{
     ml_kem_512::*,
@@ -58,26 +53,33 @@ pub fn create_renet_server(mut commands: Commands) {
     let socket = UdpSocket::bind(server_addr).unwrap();
     let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
     commands.insert_resource(transport);
-
-    // let sec_con_sys_id = commands.register_system(secure_connection);
-    // commands.run_system(sec_con_sys_id);
 }
 
 fn secure_connection(mut server: ResMut<RenetServer>, mut commands: Commands) {
+    // initiate two empty buffers for random numbers
     let mut d_buf = [0u8; 32];
     let mut z_buf = [0u8; 32];
+
+    // fill the buffers with random system entropy values
     let _ = getrandom::fill(&mut d_buf).unwrap();
     let _ = getrandom::fill(&mut z_buf).unwrap();
+
+    // use buffers to create encapsulation and decapsulation keys
     let (encaps_key, decaps_key) = KG::keygen_from_seed(d_buf, z_buf);
 
-    let message = bincode::encode_to_vec::<[u8; 800], _>(
-        encaps_key.into_bytes(),
+    // serialize the key
+    let message = bincode::encode_to_vec::<ServerMessage, _>(
+        ServerMessage::KEMHandshake {
+            message: Vec::from(encaps_key.into_bytes()),
+        },
         bincode::config::standard(),
     )
     .unwrap();
 
-    server.broadcast_message(7, message);
+    // send the encapsulation key to the client
+    server.broadcast_message(DefaultChannel::ReliableOrdered, message);
 
+    // save the decaps key as a resource and leave th shared key empty for now
     commands.insert_resource(KEMServerState {
         decaps_key,
         shared_secrets: HashMap::new(),
@@ -114,7 +116,7 @@ pub fn server_events(
                 let username = transport.user_data(*client_id).unwrap();
                 users.0.insert(*client_id, username);
                 info!(
-                    "Connected {}! User:{}",
+                    "Connected {}! User: {}",
                     client_id,
                     fixed_bytes_to_string(&username)
                 )
@@ -151,5 +153,57 @@ pub fn receive_ping(mut server: ResMut<RenetServer>) {
                 }
             }
         }
+    }
+}
+
+pub fn receive_client_message(mut server: ResMut<RenetServer>, users: ResMut<ConnectedUsers>) {
+    let channels: [u8; 3] = [
+        DefaultChannel::ReliableOrdered.into(),
+        DefaultChannel::ReliableUnordered.into(),
+        DefaultChannel::Unreliable.into(),
+    ];
+
+    for &client_id in server.clients_id().iter() {
+        let username = users.0.get(&client_id).unwrap_or(&[0u8; 256]);
+        for &channel_id in channels.iter() {
+            while let Some(message) = server.receive_message(client_id, channel_id) {
+                let client_message = bincode::decode_from_slice::<ClientMessage, _>(
+                    &message,
+                    bincode::config::standard(),
+                )
+                .unwrap()
+                .0;
+                match client_message {
+                    ClientMessage::Ping => {
+                        info!(
+                            "Received Ping from ID: {}, Username: {}",
+                            client_id,
+                            fixed_bytes_to_string(username)
+                        );
+
+                        send_message(ServerMessage::Pong, &mut server, client_id, channel_id);
+                        info!("Sent Pong!");
+                    }
+
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+fn send_message(message: ServerMessage, server: &mut RenetServer, client_id: u64, channel_id: u8) {
+    match message {
+        ServerMessage::Pong => {
+            let pong_message = bincode::encode_to_vec::<ServerMessage, _>(
+                ServerMessage::Pong,
+                bincode::config::standard(),
+            )
+            .unwrap();
+
+            server.send_message(client_id, channel_id, pong_message);
+        }
+
+        _ => {}
     }
 }

@@ -8,7 +8,7 @@ use bevy_renet::{
 };
 
 use crate::{
-    client::network::{self, client_ping},
+    client::network::{self, client_ping, receive_server_message},
     common::user::UserLogin,
 };
 
@@ -48,7 +48,10 @@ pub fn start() {
     .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
     .insert_resource(UserLogin::default())
     .add_systems(Startup, (setup_camera_lights, network::connect_to_server))
-    .add_systems(Update, client_ping.run_if(client_connected));
+    .add_systems(
+        Update,
+        (client_ping, receive_server_message).run_if(client_connected),
+    );
 
     app.run();
 }

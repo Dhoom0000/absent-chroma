@@ -7,7 +7,7 @@ use fips203::{SharedSecretKey, ml_kem_512::DecapsKey};
 #[derive(Encode, Decode, Debug)]
 pub enum ClientMessage {
     Ping,
-    KEMHandshake,
+    KEMHandshake { message: Vec<u8> },
     Hello(String),
     Move([f32; 3]),
 }
@@ -15,7 +15,7 @@ pub enum ClientMessage {
 #[derive(Encode, Decode, Debug)]
 pub enum ServerMessage {
     Pong,
-    KEMHandshake,
+    KEMHandshake { message: Vec<u8> },
     Welcome(u64),
     Broadcast(String),
 }

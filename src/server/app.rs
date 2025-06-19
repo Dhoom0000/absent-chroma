@@ -20,7 +20,7 @@ pub fn start() {
     app.add_plugins(NetcodeServerPlugin);
     app.insert_resource(ConnectedUsers::default());
     app.add_systems(Startup, create_renet_server);
-    app.add_systems(Update, (server_events, receive_ping));
+    app.add_systems(Update, (server_events, receive_client_message));
 
     app.run();
 }

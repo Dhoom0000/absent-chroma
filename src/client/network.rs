@@ -15,7 +15,9 @@ use local_ip_address::local_ip;
 
 use crate::common::{
     self,
-    network::{ClientMessage, PROTOCOL_ID, get_private_key_env, string_to_fixed_bytes},
+    network::{
+        ClientMessage, PROTOCOL_ID, ServerMessage, get_private_key_env, string_to_fixed_bytes,
+    },
     user::UserLogin,
 };
 
@@ -103,5 +105,31 @@ pub fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<Ke
 
         client.send_message(DefaultChannel::ReliableOrdered, ping_message);
         info!("Sent Ping!");
+    }
+}
+
+pub fn receive_server_message(mut client: ResMut<RenetClient>) {
+    let channels: [u8; 3] = [
+        DefaultChannel::ReliableOrdered.into(),
+        DefaultChannel::ReliableUnordered.into(),
+        DefaultChannel::Unreliable.into(),
+    ];
+
+    for &channel_id in channels.iter() {
+        while let Some(message) = client.receive_message(channel_id) {
+            let server_message = bincode::decode_from_slice::<ServerMessage, _>(
+                &message,
+                bincode::config::standard(),
+            )
+            .unwrap()
+            .0;
+            match server_message {
+                ServerMessage::Pong => {
+                    info!("Received Pong from Server!");
+                }
+
+                _ => {}
+            }
+        }
     }
 }
