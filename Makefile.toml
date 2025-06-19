@@ -1,0 +1,21 @@
+# [env]
+# RUST_BACKTRACE = "1"
+
+[config]
+skip_core_tasks = true
+
+[tasks.default]
+description = "Build binaries and run each in a different shell"
+script = [
+    # 'cargo fmt',
+    'cargo b',
+    # 'cargo test',
+    # 'cargo make doc',
+    'start cmd /k "cargo r --bin client"',
+    'start cmd /k "cargo r --bin server"',
+]
+
+
+[tasks.doc]
+command = "cargo"
+args = ["doc", "--no-deps", "--bins", "--open"]
