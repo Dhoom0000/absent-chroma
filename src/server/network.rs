@@ -12,19 +12,17 @@ use bevy_renet::{
 };
 use local_ip_address::local_ip;
 
-use crate::common::{network::{fixed_bytes_to_string, get_private_key_env, ClientMessage, PROTOCOL_ID}, user::ConnectedUsers};
+use crate::common::{
+    network::{
+        ClientMessage, KEMServerState, PROTOCOL_ID, fixed_bytes_to_string, get_private_key_env,
+    },
+    user::ConnectedUsers,
+};
 
 use fips203::{
-    SharedSecretKey,
     ml_kem_512::*,
     traits::{Decaps, KeyGen, SerDes},
 };
-
-#[derive(Resource)]
-pub struct KEMServerState {
-    pub decaps_key: DecapsKey,
-    pub shared_secrets: HashMap<u64, SharedSecretKey>, // client_id -> ssk
-}
 
 pub fn create_renet_server(mut commands: Commands) {
     // insert a RenetServer resource
@@ -105,17 +103,30 @@ fn receive_secure_cipher(
     }
 }
 
-pub fn server_events(mut events: EventReader<ServerEvent>,transport: Res<NetcodeServerTransport>,mut users:ResMut<ConnectedUsers>) {
+pub fn server_events(
+    mut events: EventReader<ServerEvent>,
+    transport: Res<NetcodeServerTransport>,
+    mut users: ResMut<ConnectedUsers>,
+) {
     for event in events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
                 let username = transport.user_data(*client_id).unwrap();
                 users.0.insert(*client_id, username);
-                info!("Connected {}! User:{}", client_id,fixed_bytes_to_string(&username))
+                info!(
+                    "Connected {}! User:{}",
+                    client_id,
+                    fixed_bytes_to_string(&username)
+                )
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 let username = users.0.get(client_id).unwrap();
-                info!("Disconnected {}! User: {} Reason: {}", client_id, fixed_bytes_to_string(username), reason)
+                info!(
+                    "Disconnected {}! User: {} Reason: {}",
+                    client_id,
+                    fixed_bytes_to_string(username),
+                    reason
+                )
             }
         }
     }

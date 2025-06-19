@@ -7,7 +7,10 @@ use bevy_renet::{
     RenetClientPlugin, client_connected, netcode::NetcodeClientPlugin, renet::RenetClient,
 };
 
-use crate::{client::network::{self, client_ping}, common::user::UserLogin};
+use crate::{
+    client::network::{self, client_ping},
+    common::user::UserLogin,
+};
 
 const GAME_NAME: &str = "Absent Chroma";
 

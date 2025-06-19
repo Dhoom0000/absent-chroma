@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{app::ScheduleRunnerPlugin, log::LogPlugin, prelude::*};
 use bevy_renet::{RenetServerPlugin, netcode::NetcodeServerPlugin};
 
-use crate::{common::user::{ConnectedUsers}, server::network::*};
+use crate::{common::user::ConnectedUsers, server::network::*};
 
 pub fn start() {
     let mut app = App::new();

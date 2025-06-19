@@ -15,10 +15,11 @@ use local_ip_address::local_ip;
 
 use crate::common::{
     self,
-    network::{get_private_key_env, string_to_fixed_bytes, ClientMessage, PROTOCOL_ID}, user::UserLogin,
+    network::{ClientMessage, PROTOCOL_ID, get_private_key_env, string_to_fixed_bytes},
+    user::UserLogin,
 };
 
-pub fn connect_to_server(mut commands: Commands,user:Res<UserLogin>) {
+pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
     // Insert a RenetClient
     let client = RenetClient::new(ConnectionConfig::default());
     commands.insert_resource(client);
@@ -40,13 +41,12 @@ pub fn connect_to_server(mut commands: Commands,user:Res<UserLogin>) {
     let anon_username = &string_to_fixed_bytes("Anon");
 
     let user_data = match &*user {
-        UserLogin::NotLoggedIn => {
-            Some(anon_username)
-        }
-        UserLogin::IsLoggedIn{username,email:_,password:_} => {
-            Some(username)
-        }
-
+        UserLogin::NotLoggedIn => Some(anon_username),
+        UserLogin::IsLoggedIn {
+            username,
+            email: _,
+            password: _,
+        } => Some(username),
     };
 
     // create a connection token to use for authentication
