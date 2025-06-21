@@ -3,6 +3,3 @@ linker = "rust-lld.exe"
 
 [build]
 jobs = 6
-
-[alias]
-docs = "doc --no-deps --bins --open"

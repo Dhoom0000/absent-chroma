@@ -9,6 +9,7 @@ use bevy_renet::{
     renet::{ConnectionConfig, DefaultChannel, RenetClient},
     *,
 };
+use bincode::config;
 use fips203::traits::SerDes;
 use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
 use local_ip_address::local_ip;
@@ -16,7 +17,8 @@ use local_ip_address::local_ip;
 use crate::common::{
     self,
     network::{
-        ClientMessage, PROTOCOL_ID, ServerMessage, get_private_key_env, string_to_fixed_bytes,
+        ClientMessage, KEMClientKey, PROTOCOL_ID, ServerMessage, get_private_key_env,
+        string_to_fixed_bytes,
     },
     user::UserLogin,
 };
@@ -72,29 +74,6 @@ pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
     commands.insert_resource(transport);
 }
 
-fn establish_secure_connection(mut client: ResMut<RenetClient>) {
-    let raw_key_bytes = client
-        .receive_message(DefaultChannel::ReliableOrdered)
-        .unwrap();
-
-    let deserialized_key = EncapsKey::try_from_bytes(
-        bincode::decode_from_slice::<[u8; 800], _>(&raw_key_bytes, bincode::config::standard())
-            .unwrap()
-            .0,
-    )
-    .unwrap();
-
-    let (ssk, ciphertext) = deserialized_key.try_encaps().unwrap();
-
-    let message = bincode::encode_to_vec::<[u8; 768], _>(
-        ciphertext.into_bytes(),
-        bincode::config::standard(),
-    )
-    .unwrap();
-
-    client.send_message(DefaultChannel::ReliableOrdered, message);
-}
-
 pub fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<KeyCode>>) {
     if keyboard.just_pressed(KeyCode::Space) {
         let ping_message = bincode::encode_to_vec::<ClientMessage, _>(
@@ -108,7 +87,7 @@ pub fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<Ke
     }
 }
 
-pub fn receive_server_message(mut client: ResMut<RenetClient>) {
+pub fn receive_server_message(mut client: ResMut<RenetClient>, mut kem: ResMut<KEMClientKey>) {
     let channels: [u8; 3] = [
         DefaultChannel::ReliableOrdered.into(),
         DefaultChannel::ReliableUnordered.into(),
@@ -117,19 +96,35 @@ pub fn receive_server_message(mut client: ResMut<RenetClient>) {
 
     for &channel_id in channels.iter() {
         while let Some(message) = client.receive_message(channel_id) {
-            let server_message = bincode::decode_from_slice::<ServerMessage, _>(
-                &message,
-                bincode::config::standard(),
-            )
-            .unwrap()
-            .0;
+            let server_message = ServerMessage::decode(&message);
             match server_message {
                 ServerMessage::Pong => {
                     info!("Received Pong from Server!");
+                }
+
+                ServerMessage::KEMEncapsKey(encaps_key) => {
+                    respond_kem_handshake(encaps_key, &mut client, &mut *kem);
                 }
 
                 _ => {}
             }
         }
     }
+}
+
+fn respond_kem_handshake(encaps_key: [u8; 800], client: &mut RenetClient, kem: &mut KEMClientKey) {
+    let (ssk, ciphertext) = EncapsKey::try_from_bytes(encaps_key)
+        .expect("Error trying to get encaps key from ByteArray.")
+        .try_encaps()
+        .expect("Error trying to get ssk from encaps key.");
+
+    *kem = KEMClientKey::SharedSecret(ssk);
+
+    let ser_cipher = ciphertext.into_bytes();
+
+    ClientMessage::send(
+        ClientMessage::KEMCipherText(ser_cipher),
+        client,
+        DefaultChannel::ReliableOrdered.into(),
+    );
 }

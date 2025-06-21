@@ -1,29 +1,128 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use bevy_renet::renet::{Bytes, RenetClient, RenetServer};
 use bincode::*;
-use fips203::{SharedSecretKey, ml_kem_512::DecapsKey};
+use fips203::{
+    SharedSecretKey,
+    ml_kem_512::{DecapsKey, KG},
+    traits::KeyGen,
+};
 
 #[derive(Encode, Decode, Debug)]
 pub enum ClientMessage {
     Ping,
-    KEMHandshake { message: Vec<u8> },
+    KEMCipherText([u8; 768]),
     Hello(String),
     Move([f32; 3]),
+    Error(String),
+}
+
+impl ClientMessage {
+    pub fn decode(message: &Bytes) -> ClientMessage {
+        let deserialized_message =
+            bincode::decode_from_slice::<ClientMessage, _>(message, config::standard())
+                .expect("Error trying to deserialize Pong message.")
+                .0;
+
+        match deserialized_message {
+            ClientMessage::Ping => ClientMessage::Ping,
+
+            ClientMessage::KEMCipherText(ciphertext) => ClientMessage::KEMCipherText(ciphertext),
+
+            ClientMessage::Hello(hello_str) => ClientMessage::Hello(hello_str),
+
+            ClientMessage::Move(vec) => ClientMessage::Move(vec),
+
+            _ => ClientMessage::Error("Client Message mismatch.".to_string()),
+        }
+    }
+
+    pub fn send(message: ClientMessage, client: &mut RenetClient, channel_id: u8) {
+        let serialized_message =
+            bincode::encode_to_vec::<ClientMessage, _>(message, config::standard())
+                .expect("Error trying to encode Client Message to vec.");
+
+        client.send_message(channel_id, serialized_message);
+    }
 }
 
 #[derive(Encode, Decode, Debug)]
 pub enum ServerMessage {
     Pong,
-    KEMHandshake { message: Vec<u8> },
+    KEMEncapsKey([u8; 800]),
     Welcome(u64),
     Broadcast(String),
+    Error(String),
+}
+
+impl ServerMessage {
+    pub fn decode(message: &Bytes) -> ServerMessage {
+        let deserialized_message =
+            bincode::decode_from_slice::<ServerMessage, _>(message, config::standard())
+                .expect("Error trying to deserialize Pong message.")
+                .0;
+
+        match deserialized_message {
+            ServerMessage::Pong => ServerMessage::Pong,
+
+            ServerMessage::KEMEncapsKey(encaps_key) => ServerMessage::KEMEncapsKey(encaps_key),
+
+            ServerMessage::Welcome(user_id) => ServerMessage::Welcome(user_id),
+
+            ServerMessage::Broadcast(message) => ServerMessage::Broadcast(message),
+
+            _ => ServerMessage::Error("Server Message mismatch.".to_string()),
+        }
+    }
+
+    pub fn send(message: ServerMessage, server: &mut RenetServer, client_id: u64, channel_id: u8) {
+        let serialized_message =
+            bincode::encode_to_vec::<ServerMessage, _>(message, config::standard())
+                .expect("Error trying to encode Server Message to vec.");
+
+        server.send_message(client_id, channel_id, serialized_message);
+    }
+}
+
+#[derive(Resource)]
+pub enum KEMClientKey {
+    Pending,
+    SharedSecret(SharedSecretKey),
+}
+
+impl Default for KEMClientKey {
+    fn default() -> Self {
+        KEMClientKey::Pending
+    }
 }
 
 #[derive(Resource)]
 pub struct KEMServerState {
     pub decaps_key: DecapsKey,
     pub shared_secrets: HashMap<u64, SharedSecretKey>, // client_id -> ssk
+}
+
+impl std::fmt::Debug for KEMServerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "KEMServerState {{ decaps_key: [REDACTED], shared_secrets: [{} clients] }}",
+            self.shared_secrets.len()
+        )
+    }
+}
+
+impl Default for KEMServerState {
+    fn default() -> Self {
+        let decaps_key = KG::try_keygen()
+            .expect("Error loading KEMServer resource into the app.")
+            .1;
+        KEMServerState {
+            decaps_key,
+            shared_secrets: HashMap::new(),
+        }
+    }
 }
 
 pub const PROTOCOL_ID: u64 = 69;

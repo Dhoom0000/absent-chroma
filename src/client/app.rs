@@ -9,7 +9,7 @@ use bevy_renet::{
 
 use crate::{
     client::network::{self, client_ping, receive_server_message},
-    common::user::UserLogin,
+    common::{network::KEMClientKey, user::UserLogin},
 };
 
 const GAME_NAME: &str = "Absent Chroma";
@@ -47,6 +47,7 @@ pub fn start() {
     .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
     .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
     .insert_resource(UserLogin::default())
+    .insert_resource(KEMClientKey::default())
     .add_systems(Startup, (setup_camera_lights, network::connect_to_server))
     .add_systems(
         Update,

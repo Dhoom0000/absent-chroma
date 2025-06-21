@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     net::{SocketAddr, UdpSocket},
     time::SystemTime,
 };
@@ -28,7 +27,7 @@ pub fn create_renet_server(mut commands: Commands) {
     // Get current system time to use for configuration
     let current_time = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap();
+        .unwrap_or_default();
 
     // Open a local server at given port
     let server_addr = SocketAddr::new(local_ip().unwrap(), 42069);
@@ -50,113 +49,76 @@ pub fn create_renet_server(mut commands: Commands) {
     };
 
     // Add a UDP transport socket and resource
-    let socket = UdpSocket::bind(server_addr).unwrap();
-    let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
+    let socket = UdpSocket::bind(server_addr)
+        .expect("UdpSocket bind failure. Consider restarting the server.");
+    let transport = NetcodeServerTransport::new(server_config, socket)
+        .expect("NetcodeServerTransport could not be established. Consider restarting the server.");
     commands.insert_resource(transport);
 }
 
-fn secure_connection(mut server: ResMut<RenetServer>, mut commands: Commands) {
-    // initiate two empty buffers for random numbers
-    let mut d_buf = [0u8; 32];
-    let mut z_buf = [0u8; 32];
-
-    // fill the buffers with random system entropy values
-    let _ = getrandom::fill(&mut d_buf).unwrap();
-    let _ = getrandom::fill(&mut z_buf).unwrap();
-
-    // use buffers to create encapsulation and decapsulation keys
-    let (encaps_key, decaps_key) = KG::keygen_from_seed(d_buf, z_buf);
-
-    // serialize the key
-    let message = bincode::encode_to_vec::<ServerMessage, _>(
-        ServerMessage::KEMHandshake {
-            message: Vec::from(encaps_key.into_bytes()),
-        },
-        bincode::config::standard(),
-    )
-    .unwrap();
-
-    // send the encapsulation key to the client
-    server.broadcast_message(DefaultChannel::ReliableOrdered, message);
-
-    // save the decaps key as a resource and leave th shared key empty for now
-    commands.insert_resource(KEMServerState {
-        decaps_key,
-        shared_secrets: HashMap::new(),
-    });
-}
-
-fn receive_secure_cipher(
-    mut server: ResMut<RenetServer>,
-    mut kem_resource: ResMut<KEMServerState>,
+fn establish_kem_encryption_handshake(
+    server: &mut RenetServer,
+    kem_state: &mut KEMServerState,
+    client_id: u64,
 ) {
-    for &client_id in server.clients_id().iter() {
-        let raw_cipher = bincode::decode_from_slice::<[u8; 768], _>(
-            &(server.receive_message(client_id, 7).unwrap()),
-            bincode::config::standard(),
-        )
-        .unwrap();
+    let (encaps_key, decaps_key) = KG::try_keygen().expect("FIPS203 KEM keygen failure.");
 
-        let ciphertext = CipherText::try_from_bytes(raw_cipher.0).unwrap();
+    let ser_encaps_key = encaps_key.into_bytes();
 
-        let ssk = kem_resource.decaps_key.try_decaps(&ciphertext).unwrap();
+    let server_message = ServerMessage::KEMEncapsKey(ser_encaps_key);
 
-        kem_resource.shared_secrets.insert(client_id, ssk);
-    }
+    kem_state.decaps_key = decaps_key;
+
+    ServerMessage::send(
+        server_message,
+        server,
+        client_id,
+        DefaultChannel::ReliableOrdered.into(),
+    );
 }
 
 pub fn server_events(
     mut events: EventReader<ServerEvent>,
     transport: Res<NetcodeServerTransport>,
     mut users: ResMut<ConnectedUsers>,
+    mut server: ResMut<RenetServer>,
+    mut kem_resource: ResMut<KEMServerState>,
 ) {
     for event in events.read() {
         match event {
             ServerEvent::ClientConnected { client_id } => {
-                let username = transport.user_data(*client_id).unwrap();
+                let username = transport
+                    .user_data(*client_id)
+                    .unwrap_or(string_to_fixed_bytes("None"));
                 users.0.insert(*client_id, username);
                 info!(
                     "Connected {}! User: {}",
                     client_id,
                     fixed_bytes_to_string(&username)
-                )
+                );
+
+                establish_kem_encryption_handshake(&mut *server, &mut *kem_resource, *client_id);
             }
             ServerEvent::ClientDisconnected { client_id, reason } => {
-                let username = users.0.get(client_id).unwrap();
+                let fallback_username = string_to_fixed_bytes("None");
+                let username = users.0.get(client_id).unwrap_or(&fallback_username);
+                Some(kem_resource.shared_secrets.remove(client_id));
                 info!(
                     "Disconnected {}! User: {} Reason: {}",
                     client_id,
                     fixed_bytes_to_string(username),
                     reason
-                )
+                );
             }
         }
     }
 }
 
-pub fn receive_ping(mut server: ResMut<RenetServer>) {
-    for client_id in server.clients_id().iter() {
-        while let Some(message) =
-            server.receive_message(*client_id, DefaultChannel::ReliableOrdered)
-        {
-            let client_message = bincode::decode_from_slice::<ClientMessage, _>(
-                &message,
-                bincode::config::standard(),
-            )
-            .unwrap();
-            match client_message.0 {
-                ClientMessage::Ping => {
-                    println!("Got ping from client: {:?}", client_id);
-                }
-                _ => {
-                    continue;
-                }
-            }
-        }
-    }
-}
-
-pub fn receive_client_message(mut server: ResMut<RenetServer>, users: ResMut<ConnectedUsers>) {
+pub fn receive_client_message(
+    mut server: ResMut<RenetServer>,
+    users: ResMut<ConnectedUsers>,
+    mut kem: ResMut<KEMServerState>,
+) {
     let channels: [u8; 3] = [
         DefaultChannel::ReliableOrdered.into(),
         DefaultChannel::ReliableUnordered.into(),
@@ -167,12 +129,7 @@ pub fn receive_client_message(mut server: ResMut<RenetServer>, users: ResMut<Con
         let username = users.0.get(&client_id).unwrap_or(&[0u8; 256]);
         for &channel_id in channels.iter() {
             while let Some(message) = server.receive_message(client_id, channel_id) {
-                let client_message = bincode::decode_from_slice::<ClientMessage, _>(
-                    &message,
-                    bincode::config::standard(),
-                )
-                .unwrap()
-                .0;
+                let client_message = ClientMessage::decode(&message);
                 match client_message {
                     ClientMessage::Ping => {
                         info!(
@@ -181,29 +138,32 @@ pub fn receive_client_message(mut server: ResMut<RenetServer>, users: ResMut<Con
                             fixed_bytes_to_string(username)
                         );
 
-                        send_message(ServerMessage::Pong, &mut server, client_id, channel_id);
+                        ServerMessage::send(
+                            ServerMessage::Pong,
+                            &mut server,
+                            client_id,
+                            channel_id,
+                        );
                         info!("Sent Pong!");
+                    }
+
+                    ClientMessage::KEMCipherText(ser_cipher) => {
+                        let cipher = CipherText::try_from_bytes(ser_cipher)
+                            .expect("error trying to get ciphertext to decaps key");
+
+                        let ssk = kem
+                            .decaps_key
+                            .try_decaps(&cipher)
+                            .expect("error trying to get decaps ssk");
+
+                        kem.shared_secrets.insert(client_id, ssk);
+
+                        info!("{:?}", kem);
                     }
 
                     _ => {}
                 }
             }
         }
-    }
-}
-
-fn send_message(message: ServerMessage, server: &mut RenetServer, client_id: u64, channel_id: u8) {
-    match message {
-        ServerMessage::Pong => {
-            let pong_message = bincode::encode_to_vec::<ServerMessage, _>(
-                ServerMessage::Pong,
-                bincode::config::standard(),
-            )
-            .unwrap();
-
-            server.send_message(client_id, channel_id, pong_message);
-        }
-
-        _ => {}
     }
 }
