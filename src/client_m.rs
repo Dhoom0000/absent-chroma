@@ -1,6 +1,10 @@
-// #![cfg_attr(windows, windows_subsystem = "windows")] //for windows to not show console window
+//for windows to not show console window
+// #![cfg_attr(windows, windows_subsystem = "windows")]
+
+// Allow some for beginner code
 #![allow(unused_imports)]
 #![allow(unused_parens)]
+#![allow(dead_code)]
 
 pub use bevy::prelude::*;
 
