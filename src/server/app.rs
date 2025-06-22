@@ -4,7 +4,7 @@ use bevy::{app::ScheduleRunnerPlugin, log::LogPlugin, prelude::*};
 use bevy_renet::{RenetServerPlugin, netcode::NetcodeServerPlugin};
 
 use crate::{
-    common::{network::KEMServerState, user::ConnectedUsers},
+    common::{encryption::KEMServerState, user::ConnectedUsers},
     server::network::*,
 };
 

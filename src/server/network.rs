@@ -11,7 +11,7 @@ use bevy_renet::{
 };
 use local_ip_address::local_ip;
 
-use crate::common::{network::*, user::ConnectedUsers};
+use crate::common::{encryption::KEMServerState, network::*, user::ConnectedUsers};
 
 use fips203::{
     ml_kem_512::*,
@@ -71,7 +71,9 @@ fn establish_kem_encryption_handshake(
     let server_message = ServerMessage::KEMEncapsKey(Box::new(ser_encaps_key));
 
     // store the decaps key for later use
-    kem_state.decaps_key.insert(client_id, decaps_key);
+    kem_state
+        .decaps_key
+        .insert(client_id, Box::new(decaps_key.into_bytes()));
 
     // send the message to the client
     ServerMessage::send(
@@ -169,14 +171,18 @@ pub fn receive_client_message(
                         let cipher = CipherText::try_from_bytes(*ser_cipher)
                             .expect("error trying to get ciphertext to decaps key");
 
-                        let ssk = kem
-                            .decaps_key
-                            .get(&client_id)
-                            .expect("Client decaps key does not exist")
-                            .try_decaps(&cipher)
-                            .expect("error trying to get decaps ssk");
+                        let ssk = DecapsKey::try_from_bytes(
+                            **kem
+                                .decaps_key
+                                .get(&client_id)
+                                .expect("Client decaps key does not exist"),
+                        )
+                        .expect("error trying to convert bytes to DecapsKey")
+                        .try_decaps(&cipher)
+                        .expect("error trying to get decaps ssk");
 
-                        kem.shared_secrets.insert(client_id, ssk);
+                        kem.shared_secrets
+                            .insert(client_id, Box::new(ssk.into_bytes()));
 
                         kem.decaps_key
                             .remove(&client_id)

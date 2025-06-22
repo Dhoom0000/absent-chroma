@@ -15,10 +15,9 @@ use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
 use local_ip_address::local_ip;
 
 use crate::common::{
-    self,
+    encryption::KEMClientKey,
     network::{
-        ClientMessage, KEMClientKey, PROTOCOL_ID, ServerMessage, get_private_key_env,
-        string_to_fixed_bytes,
+        ClientMessage, PROTOCOL_ID, ServerMessage, get_private_key_env, string_to_fixed_bytes,
     },
     user::UserLogin,
 };
@@ -118,7 +117,7 @@ fn respond_kem_handshake(encaps_key: [u8; 800], client: &mut RenetClient, kem: &
         .try_encaps()
         .expect("Error trying to get ssk from encaps key.");
 
-    *kem = KEMClientKey::SharedSecret(ssk);
+    *kem = KEMClientKey::SharedSecret(Box::new(ssk.into_bytes()));
 
     let ser_cipher = ciphertext.into_bytes();
 

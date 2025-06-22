@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-
 use bevy::prelude::*;
 use bevy_renet::renet::{Bytes, RenetClient, RenetServer};
 use bincode::*;
-use fips203::{SharedSecretKey, ml_kem_512::DecapsKey};
 
 #[derive(Encode, Decode, Debug)]
 pub enum ClientMessage {
@@ -78,30 +75,6 @@ impl ServerMessage {
                 .expect("Error trying to encode Server Message to vec.");
 
         server.send_message(client_id, channel_id, serialized_message);
-    }
-}
-
-#[derive(Resource, Default)]
-pub enum KEMClientKey {
-    #[default]
-    Pending,
-    SharedSecret(SharedSecretKey),
-}
-
-#[derive(Resource, Default)]
-pub struct KEMServerState {
-    pub decaps_key: HashMap<u64, DecapsKey>,
-    pub shared_secrets: HashMap<u64, SharedSecretKey>, // client_id -> ssk
-}
-
-impl std::fmt::Debug for KEMServerState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "KEMServerState {{ decaps_keys: {}, shared_secrets: [{} clients] }}",
-            self.decaps_key.len(),
-            self.shared_secrets.len()
-        )
     }
 }
 

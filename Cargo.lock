@@ -25,6 +25,7 @@ dependencies = [
  "bevy",
  "bevy_renet",
  "bincode",
+ "chacha20poly1305",
  "dotenvy",
  "fips203",
  "getrandom 0.3.3",

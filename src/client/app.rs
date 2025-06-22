@@ -9,7 +9,7 @@ use bevy_renet::{
 
 use crate::{
     client::network::{self, client_ping, receive_server_message},
-    common::{network::KEMClientKey, user::UserLogin},
+    common::{encryption::KEMClientKey, user::UserLogin},
 };
 
 const GAME_NAME: &str = "Absent Chroma";
