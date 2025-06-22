@@ -3,16 +3,12 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy_renet::renet::{Bytes, RenetClient, RenetServer};
 use bincode::*;
-use fips203::{
-    SharedSecretKey,
-    ml_kem_512::{DecapsKey, KG},
-    traits::{KeyGen, SerDes},
-};
+use fips203::{SharedSecretKey, ml_kem_512::DecapsKey};
 
 #[derive(Encode, Decode, Debug)]
 pub enum ClientMessage {
     Ping,
-    KEMCipherText([u8; 768]),
+    KEMCipherText(Box<[u8; 768]>),
     Hello(String),
     Move([f32; 3]),
     Error(String),
@@ -50,7 +46,7 @@ impl ClientMessage {
 #[derive(Encode, Decode, Debug)]
 pub enum ServerMessage {
     Pong,
-    KEMEncapsKey([u8; 800]),
+    KEMEncapsKey(Box<[u8; 800]>),
     Welcome(u64),
     Broadcast(String),
     Error(String),
@@ -85,19 +81,14 @@ impl ServerMessage {
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub enum KEMClientKey {
+    #[default]
     Pending,
     SharedSecret(SharedSecretKey),
 }
 
-impl Default for KEMClientKey {
-    fn default() -> Self {
-        KEMClientKey::Pending
-    }
-}
-
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct KEMServerState {
     pub decaps_key: HashMap<u64, DecapsKey>,
     pub shared_secrets: HashMap<u64, SharedSecretKey>, // client_id -> ssk
@@ -111,15 +102,6 @@ impl std::fmt::Debug for KEMServerState {
             self.decaps_key.len(),
             self.shared_secrets.len()
         )
-    }
-}
-
-impl Default for KEMServerState {
-    fn default() -> Self {
-        KEMServerState {
-            decaps_key: HashMap::new(),
-            shared_secrets: HashMap::new(),
-        }
     }
 }
 

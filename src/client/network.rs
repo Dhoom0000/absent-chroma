@@ -50,7 +50,7 @@ pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
             username,
             email: _,
             password: _,
-        } => Some(username),
+        } => Some(&**username),
     };
 
     // create a connection token to use for authentication
@@ -103,7 +103,7 @@ pub fn receive_server_message(mut client: ResMut<RenetClient>, mut kem: ResMut<K
                 }
 
                 ServerMessage::KEMEncapsKey(encaps_key) => {
-                    respond_kem_handshake(encaps_key, &mut client, &mut *kem);
+                    respond_kem_handshake(*encaps_key, &mut client, &mut kem);
                 }
 
                 _ => {}
@@ -123,7 +123,7 @@ fn respond_kem_handshake(encaps_key: [u8; 800], client: &mut RenetClient, kem: &
     let ser_cipher = ciphertext.into_bytes();
 
     ClientMessage::send(
-        ClientMessage::KEMCipherText(ser_cipher),
+        ClientMessage::KEMCipherText(Box::new(ser_cipher)),
         client,
         DefaultChannel::ReliableOrdered.into(),
     );

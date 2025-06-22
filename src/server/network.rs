@@ -68,7 +68,7 @@ fn establish_kem_encryption_handshake(
     let ser_encaps_key = encaps_key.into_bytes();
 
     // convert to the ServerMessage type to send the key to client
-    let server_message = ServerMessage::KEMEncapsKey(ser_encaps_key);
+    let server_message = ServerMessage::KEMEncapsKey(Box::new(ser_encaps_key));
 
     // store the decaps key for later use
     kem_state.decaps_key.insert(client_id, decaps_key);
@@ -105,15 +105,15 @@ pub fn server_events(
                 );
 
                 // send kem handshake key
-                establish_kem_encryption_handshake(&mut *server, &mut *kem_resource, *client_id);
+                establish_kem_encryption_handshake(&mut server, &mut kem_resource, *client_id);
             }
 
             ServerEvent::ClientDisconnected { client_id, reason } => {
                 let fallback_username = string_to_fixed_bytes("None");
                 // remove the user from the list
                 let username = users.0.get(client_id).unwrap_or(&fallback_username);
-                Some(kem_resource.decaps_key.remove(client_id));
-                Some(kem_resource.shared_secrets.remove(client_id));
+                kem_resource.decaps_key.remove(client_id);
+                kem_resource.shared_secrets.remove(client_id);
                 info!(
                     "Disconnected {}! User: {} Reason: {}",
                     client_id,
@@ -166,7 +166,7 @@ pub fn receive_client_message(
 
                     // If its a response for the KEM handshake, get the secret key and store for later use
                     ClientMessage::KEMCipherText(ser_cipher) => {
-                        let cipher = CipherText::try_from_bytes(ser_cipher)
+                        let cipher = CipherText::try_from_bytes(*ser_cipher)
                             .expect("error trying to get ciphertext to decaps key");
 
                         let ssk = kem

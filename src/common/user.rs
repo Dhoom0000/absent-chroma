@@ -2,20 +2,15 @@ use std::collections::HashMap;
 
 use bevy::ecs::resource::Resource;
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub enum UserLogin {
+    #[default]
     NotLoggedIn,
     IsLoggedIn {
-        username: [u8; 256],
-        email: [u8; 256],
-        password: [u8; 256],
+        username: Box<[u8; 256]>,
+        email: Box<[u8; 256]>,
+        password: Box<[u8; 256]>,
     },
-}
-
-impl Default for UserLogin {
-    fn default() -> Self {
-        UserLogin::NotLoggedIn
-    }
 }
 
 #[derive(Resource, Default)]
