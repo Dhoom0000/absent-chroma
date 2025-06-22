@@ -6,7 +6,7 @@ use bincode::*;
 use fips203::{
     SharedSecretKey,
     ml_kem_512::{DecapsKey, KG},
-    traits::KeyGen,
+    traits::{KeyGen, SerDes},
 };
 
 #[derive(Encode, Decode, Debug)]
@@ -99,7 +99,7 @@ impl Default for KEMClientKey {
 
 #[derive(Resource)]
 pub struct KEMServerState {
-    pub decaps_key: DecapsKey,
+    pub decaps_key: HashMap<u64, DecapsKey>,
     pub shared_secrets: HashMap<u64, SharedSecretKey>, // client_id -> ssk
 }
 
@@ -107,7 +107,8 @@ impl std::fmt::Debug for KEMServerState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "KEMServerState {{ decaps_key: [REDACTED], shared_secrets: [{} clients] }}",
+            "KEMServerState {{ decaps_keys: {}, shared_secrets: [{} clients] }}",
+            self.decaps_key.len(),
             self.shared_secrets.len()
         )
     }
@@ -115,11 +116,8 @@ impl std::fmt::Debug for KEMServerState {
 
 impl Default for KEMServerState {
     fn default() -> Self {
-        let decaps_key = KG::try_keygen()
-            .expect("Error loading KEMServer resource into the app.")
-            .1;
         KEMServerState {
-            decaps_key,
+            decaps_key: HashMap::new(),
             shared_secrets: HashMap::new(),
         }
     }
