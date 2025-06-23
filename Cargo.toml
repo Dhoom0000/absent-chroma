@@ -12,7 +12,7 @@ name = "server"
 path = "src/server_m.rs"
 
 [dependencies]
-bevy = { version = "0.16.0", features = ["dynamic_linking", "wayland"] }
+bevy = { version = "0.16.0", features = ["dynamic_linking"] }
 bevy_renet = { git = "https://github.com/lucaspoffo/renet.git", rev = "d2c5074bc232781889c26acfe68d8622b8ebd88e"}
 bincode = { version = "2.0.1" }
 chacha20poly1305 = "0.10.1"

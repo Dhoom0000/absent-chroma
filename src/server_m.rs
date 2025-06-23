@@ -1,9 +1,7 @@
-
 // Allow some for beginner code
 #[allow(dead_code)]
 #[allow(unused_imports)]
 #[allow(unused_braces)]
-
 mod common; // Import the common module
 mod server; // Import the server module 
 
