@@ -23,7 +23,7 @@ use bincode::de;
 use crate::{
     client::{
         network::{self, client_ping, receive_server_message},
-        ui::show_main_menu,
+        ui::{listen_ui_input, show_main_menu},
     },
     common::{encryption::KEMClientKey, user::UserLogin},
 };
@@ -39,13 +39,11 @@ struct Model;
 pub fn start() {
     let custom_window_plugin = WindowPlugin {
         primary_window: Some(Window {
-            mode: WindowMode::Windowed,
-            position: WindowPosition::Centered(MonitorSelection::Current),
-            resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
-                .with_scale_factor_override(1.),
+            mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
+            resolution: WindowResolution::new(1920., 1080.).with_scale_factor_override(1.),
             title: GAME_NAME.to_string(),
             name: Some(GAME_NAME.to_string()),
-            resizable: true,
+            resizable: false,
             ..default()
         }),
         exit_condition: ExitCondition::OnPrimaryClosed,
@@ -83,7 +81,7 @@ pub fn start() {
         Update,
         (client_ping, receive_server_message).run_if(client_connected),
     )
-    .add_systems(Update, rotate_subject);
+    .add_systems(Update, (rotate_subject, listen_ui_input));
 
     app.run();
 }
