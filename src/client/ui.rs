@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::ui::{UiPlugin, prelude::*};
+use bevy::ui::{FocusPolicy, UiPlugin, prelude::*};
 
 #[derive(Component, Clone)]
 pub enum UiLabelType {
@@ -25,42 +25,44 @@ pub fn show_main_menu(mut commands: Commands) {
         RenderLayers::from_layers(&[0, 1]),
     ));
 
-    let main_node = Node {
+    let base_node = Node {
         display: Display::Flex,
+        flex_direction: FlexDirection::Column,
         box_sizing: BoxSizing::BorderBox,
         position_type: PositionType::Relative,
-        overflow: Overflow {
-            x: OverflowAxis::Clip,
-            y: OverflowAxis::Scroll,
-        },
-        overflow_clip_margin: OverflowClipMargin {
-            visual_box: OverflowClipBox::ContentBox,
-            margin: 25.,
-        },
-        left: Val::Px(0.),
-        right: Val::Px(0.),
-        top: Val::Px(0.),
-        bottom: Val::Px(0.),
-        width: Val::Vw(100.),
-        height: Val::Vh(100.),
-        min_width: Val::Vw(90.),
-        min_height: Val::Vh(90.),
-        max_width: Val::Vw(100.),
-        max_height: Val::Vh(100.),
+        overflow: Overflow::clip(),
+        overflow_clip_margin: OverflowClipMargin::padding_box(),
         aspect_ratio: Some(2560. / 1440.),
-        align_items: AlignItems::FlexStart,
+        align_items: AlignItems::Start,
         justify_items: JustifyItems::Stretch,
-        align_content: AlignContent::Center,
-        justify_content: JustifyContent::SpaceAround,
-        align_self: AlignSelf::Center,
-        justify_self: JustifySelf::Center,
-        margin: UiRect::all(Val::Px(10.)),
-        padding: UiRect::all(Val::Px(5.)),
-        border: UiRect::all(Val::Px(1.)),
-        flex_direction: FlexDirection::Column,
+        // align_self: AlignSelf::Start,
+        // justify_self: JustifySelf::Start,
+        align_content: AlignContent::FlexStart,
+        justify_content: JustifyContent::Start, // check this
+        margin: UiRect::all(Val::Px(1.)),
+        padding: UiRect::all(Val::Px(10.)),
+        border: UiRect::all(Val::Px(5.)),
         flex_wrap: FlexWrap::Wrap,
+        // flex_grow: 1.,
+        // flex_shrink: 1.,
+        flex_basis: Val::Auto,
+        row_gap: Val::Px(10.),
+        column_gap: Val::Px(10.),
+        grid_auto_flow: GridAutoFlow::Column,
         ..Default::default()
     };
+
+    let mut main_menu_bundle = (
+        base_node.clone(),
+        FocusPolicy::Pass,
+        BackgroundColor(Color::Srgba(Srgba::hex("171717").unwrap())),
+        BorderColor(Color::WHITE),
+        BorderRadius::all(Val::Px(5.)),
+    );
+
+    main_menu_bundle.0.justify_self = JustifySelf::Stretch;
+    main_menu_bundle.0.align_content = AlignContent::Center;
+    main_menu_bundle.0.justify_content = JustifyContent::Center;
 
     let title_text_bundle = (
         Text::new("Absent Chroma"),
@@ -68,29 +70,28 @@ pub fn show_main_menu(mut commands: Commands) {
             font_size: 80.,
             ..default()
         },
+        BorderColor(Color::Srgba(Srgba::hex("0000ff").unwrap())),
+        base_node.clone(),
     );
 
     let play_text_bundle = (
         Text::new("Play"),
         TextFont {
-            font_size: 40.,
+            font_size: 42.,
             ..default()
         },
         TextColor(Color::Srgba(Srgba::hex("00ff00").unwrap())),
         UiLabelType::Play,
         Button,
+        BorderColor(Color::Srgba(Srgba::hex("ff00ff").unwrap())),
+        base_node.clone(),
     );
 
     let mut quit_text_bundle = play_text_bundle.clone();
     quit_text_bundle.0 = Text::new("Quit");
     quit_text_bundle.3 = UiLabelType::Quit;
 
-    let main_node_id = commands
-        .spawn((
-            main_node,
-            BackgroundColor(Color::Srgba(Srgba::hex("171717").unwrap())),
-        ))
-        .id();
+    let main_node_id = commands.spawn(main_menu_bundle).id();
 
     commands.entity(main_node_id).with_children(|parent| {
         parent.spawn(title_text_bundle);

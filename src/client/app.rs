@@ -40,7 +40,8 @@ pub fn start() {
     let custom_window_plugin = WindowPlugin {
         primary_window: Some(Window {
             mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
-            resolution: WindowResolution::new(1920., 1080.).with_scale_factor_override(1.),
+            resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
+                .with_scale_factor_override(1.0),
             title: GAME_NAME.to_string(),
             name: Some(GAME_NAME.to_string()),
             resizable: false,

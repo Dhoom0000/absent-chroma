@@ -1,6 +1,5 @@
 //for windows to not show console window
 #![cfg_attr(windows, windows_subsystem = "windows")]
-
 // Allow some for beginner code
 #![allow(unused_imports)]
 #![allow(unused_parens)]
