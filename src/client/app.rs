@@ -24,6 +24,7 @@ use crate::{
     client::{
         input::handle_keyboard_input,
         network::{self, client_ping, receive_server_message},
+        plugins::super_plugins,
         ui::{listen_ui_input, show_main_menu},
     },
     common::{encryption::KEMClientKey, user::UserLogin},
@@ -46,65 +47,31 @@ enum AppState {
 }
 
 pub fn start() {
-    // define window settings for the plugin
-    let custom_window_plugin = WindowPlugin {
-        primary_window: Some(Window {
-            mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
-            resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
-                .with_scale_factor_override(1.0),
-            title: GAME_NAME.to_string(),
-            name: Some(GAME_NAME.to_string()),
-            resizable: false,
-            ..default()
-        }),
-        exit_condition: ExitCondition::OnPrimaryClosed,
-        close_when_requested: true,
-    };
-
-    // define logging setting for the plugin
-    let log_filter_plugin = LogPlugin {
-        filter: "info,wgpu_core=warn,wgpu_hal=off,rechannel=warn".into(),
-        level: bevy::log::Level::DEBUG,
-        ..default()
-    };
-
     // Build a new App
     let mut app = App::new();
 
     // register the plugins, Default plugins will pull all the necessary plugins for us
-    app.add_plugins(
-        DefaultPlugins
-            .set(custom_window_plugin)
-            .set(log_filter_plugin),
-    )
-    // networking plugins
-    .add_plugins((RenetClientPlugin, NetcodeClientPlugin))
-    // Set Clear Color
-    .insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())))
-    // Resources for Encryption and Authentication
-    .insert_resource(UserLogin::default())
-    .insert_resource(KEMClientKey::default())
-    // Register startup systems
-    .add_systems(
-        Startup,
-        (
-            setup_camera_lights,        // initiate our main camera and some lights
-            network::connect_to_server, // initiate logic to connect to the server
-            render_subject,             // render a 3d model, for test for now
-            disable_backface_culling.after(render_subject), // if necessary
-            show_main_menu,             // render the main menu UI
-        ),
-    )
-    // register the update system relating to networking, just simple ping pong for testing for now
-    .add_systems(
-        Update,
-        (client_ping, receive_server_message).run_if(client_connected),
-    )
-    // register update systems for testing if the 3d model is working, and proper keyboard input handling
-    .add_systems(
-        Update,
-        (rotate_subject, listen_ui_input, handle_keyboard_input),
-    );
+    app.add_plugins(super_plugins)
+        .add_systems(
+            Startup,
+            (
+                setup_camera_lights,        // initiate our main camera and some lights
+                network::connect_to_server, // initiate logic to connect to the server
+                render_subject,             // render a 3d model, for test for now
+                disable_backface_culling.after(render_subject), // if necessary
+                show_main_menu,             // render the main menu UI
+            ),
+        )
+        // register the update system relating to networking, just simple ping pong for testing for now
+        .add_systems(
+            Update,
+            (client_ping, receive_server_message).run_if(client_connected),
+        )
+        // register update systems for testing if the 3d model is working, and proper keyboard input handling
+        .add_systems(
+            Update,
+            (rotate_subject, listen_ui_input, handle_keyboard_input),
+        );
 
     // Run the App
     app.run();

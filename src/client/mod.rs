@@ -2,4 +2,5 @@
 pub mod app;
 mod input;
 mod network;
+mod plugins;
 mod ui;
