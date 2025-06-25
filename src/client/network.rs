@@ -65,6 +65,7 @@ pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
     )
     .unwrap();
 
+    // create an authentication requirement according to the connection token
     let authentication = ClientAuthentication::Secure { connect_token };
 
     // Open a UDP socket and configure a transport resource to use
@@ -74,35 +75,39 @@ pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
 }
 
 pub fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<KeyCode>>) {
+    // ping the server, if connected, when 'Space' key is pressed
     if keyboard.just_pressed(KeyCode::Space) {
         let ping_message = bincode::encode_to_vec::<ClientMessage, _>(
-            ClientMessage::Ping,
-            bincode::config::standard(),
+            ClientMessage::Ping,         // The message we are sending, just a simple ping
+            bincode::config::standard(), // standard config
         )
         .unwrap();
 
+        // use the Reliable cjannel cuz we want to make sure it reaches perfectly
         client.send_message(DefaultChannel::ReliableOrdered, ping_message);
-        info!("Sent Ping!");
+        info!("Sent Ping!"); // log it on our terminal
     }
 }
 
 pub fn receive_server_message(mut client: ResMut<RenetClient>, mut kem: ResMut<KEMClientKey>) {
+    // define the channels we are using currently to make it easier to use later
     let channels: [u8; 3] = [
         DefaultChannel::ReliableOrdered.into(),
         DefaultChannel::ReliableUnordered.into(),
         DefaultChannel::Unreliable.into(),
     ];
 
+    // iterate through the clients, and then through the channels, and write logic for each
     for &channel_id in channels.iter() {
         while let Some(message) = client.receive_message(channel_id) {
-            let server_message = ServerMessage::decode(&message);
+            let server_message = ServerMessage::decode(&message); // use the function; defined in common crate
             match server_message {
                 ServerMessage::Pong => {
-                    info!("Received Pong from Server!");
+                    info!("Received Pong from Server!"); // if its a Pong, just show it on the terminal
                 }
 
                 ServerMessage::KEMEncapsKey(encaps_key) => {
-                    respond_kem_handshake(*encaps_key, &mut client, &mut kem);
+                    respond_kem_handshake(*encaps_key, &mut client, &mut kem); // if its encaps key, then use the encryption logic to send ciphertext key
                 }
 
                 _ => {}
@@ -112,15 +117,19 @@ pub fn receive_server_message(mut client: ResMut<RenetClient>, mut kem: ResMut<K
 }
 
 fn respond_kem_handshake(encaps_key: [u8; 800], client: &mut RenetClient, kem: &mut KEMClientKey) {
+    // derive shared secret key and ciphertext
     let (ssk, ciphertext) = EncapsKey::try_from_bytes(encaps_key)
         .expect("Error trying to get encaps key from ByteArray.")
         .try_encaps()
         .expect("Error trying to get ssk from encaps key.");
 
+    // save the ssk for later use
     *kem = KEMClientKey::SharedSecret(Box::new(ssk.into_bytes()));
 
+    // serialize the cipher
     let ser_cipher = ciphertext.into_bytes();
 
+    // send it back to server, to complete the handshake
     ClientMessage::send(
         ClientMessage::KEMCipherText(Box::new(ser_cipher)),
         client,
