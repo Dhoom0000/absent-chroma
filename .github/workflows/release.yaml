@@ -1,216 +1,304 @@
-name: release-flow
+name: Release
 
 on:
-  workflow_dispatch:
-
+  push:
+    tags:
+      - '*'
 
 env:
-  # This variable is used to name release output files.
-  GAME_EXECUTABLE_NAME: client
-  GAME_OSX_APP_NAME: AbsentChroma
+  # update with the name of the main binary
+  binary: client
+  add_binaries_to_github_release: true
+  #itch_target: <itch.io-username>/<game-name>
 
-permissions:
-  contents: write
+  # Before enabling LFS, please take a look at GitHub's documentation for costs and quota limits:
+  # https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-storage-and-bandwidth-usage
+  use_git_lfs: false
+
 
 jobs:
-  build-macOS:
-    runs-on: macos-latest
-    env:
-      # macOS 11.0 Big Sur is the first version to support universal binaries
-      MACOSX_DEPLOYMENT_TARGET: 11.0
-      VERSION: ${{needs.get-version.outputs.version}}
+
+  # Build for wasm
+  # release-wasm:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: olegtarasov/get-tag@v2.1.2
+  #       id: get_version
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         lfs: ${{ env.use_git_lfs }}
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         targets: wasm32-unknown-unknown
+  #     - name: install wasm-bindgen-cli
+  #       run: |
+  #         cargo install wasm-bindgen-cli
+
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target wasm32-unknown-unknown
+
+  #     - name: Prepare package
+  #       run: |
+  #         wasm-bindgen --no-typescript --out-name bevy_game --out-dir wasm --target web target/wasm32-unknown-unknown/release/${{ env.binary }}.wasm
+  #         cp -r assets wasm/ || true # Try to copy, but ignore if it can't copy if source directory does not exist 
+
+  #     - name: Package as a zip
+  #       working-directory: ./wasm
+  #       run: |
+  #         zip --recurse-paths ../${{ env.binary }}.zip .
+
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: ${{ env.binary }}.zip
+  #         name: wasm
+  #         retention-days: 1
+
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ env.binary }}.zip
+  #         asset_name: ${{ env.binary }}-wasm-${{ steps.get_version.outputs.tag }}.zip
+  #         tag: ${{ github.ref }}
+  #         overwrite: true
+
+  # # Build for Linux
+  # release-linux:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: olegtarasov/get-tag@v2.1.2
+  #       id: get_version
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         lfs: ${{ env.use_git_lfs }}
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         targets: x86_64-unknown-linux-gnu
+  #     - name: install dependencies
+  #       run: |
+  #         sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev
+
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target x86_64-unknown-linux-gnu
+
+  #     - name: Prepare package
+  #       run: |
+  #         mkdir linux
+  #         cp target/x86_64-unknown-linux-gnu/release/${{ env.binary }} linux/
+  #         cp -r assets linux/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
+
+  #     - name: Package as a zip
+  #       working-directory: ./linux
+  #       run: |
+  #         zip --recurse-paths ../${{ env.binary }}.zip .
+
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: ${{ env.binary }}.zip
+  #         name: linux
+  #         retention-days: 1
+
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ env.binary }}.zip
+  #         asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
+  #         tag: ${{ github.ref }}
+  #         overwrite: true
+
+  # # Build for Windows
+  # release-windows:
+  #   runs-on: windows-latest
+
+  #   steps:
+  #     - uses: olegtarasov/get-tag@v2.1.2
+  #       id: get_version
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         lfs: ${{ env.use_git_lfs }}
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         targets: x86_64-pc-windows-msvc
+
+  #     - name: Build
+  #       run: |
+  #         cargo build --release --target x86_64-pc-windows-msvc
+
+  #     - name: Prepare package
+  #       run: |
+  #         mkdir windows
+  #         cp target/x86_64-pc-windows-msvc/release/${{ env.binary }}.exe windows/
+  #         mkdir assets -ea 0 # create the assets directory if it does not exist, it will get ignored in the zip if empty
+  #         cp -r assets windows/
+
+  #     - name: Package as a zip
+  #       run: |
+  #         Compress-Archive -Path windows/* -DestinationPath ${{ env.binary }}.zip
+
+  #     - name: Upload binaries to artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         path: ${{ env.binary }}.zip
+  #         name: windows
+  #         retention-days: 1
+
+  #     - name: Upload binaries to release
+  #       if: ${{ env.add_binaries_to_github_release == 'true' }}
+  #       uses: svenstaro/upload-release-action@v2
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: ${{ env.binary }}.zip
+  #         asset_name: ${{ env.binary }}-windows-${{ steps.get_version.outputs.tag }}.zip
+  #         tag: ${{ github.ref }}
+  #         overwrite: true
+
+  # Build for MacOS x86_64
+  release-macOS-intel:
+    runs-on: macOS-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install rust toolchain for Apple Silicon
-        uses: dtolnay/rust-toolchain@master
+      - uses: olegtarasov/get-tag@v2.1.2
+        id: get_version
+      - uses: actions/checkout@v4
         with:
-          toolchain: stable
-          targets: aarch64-apple-darwin
-      - name: Build release for Apple Silicon
-        run: |
-          SDKROOT=$(xcrun -sdk macosx --show-sdk-path) cargo build --release --target=aarch64-apple-darwin
-      - name: Install rust toolchain for Apple x86
-        uses: dtolnay/rust-toolchain@master
+          lfs: ${{ env.use_git_lfs }}
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           targets: x86_64-apple-darwin
-      - name: Build release for x86 Apple
+      - name: Environment Setup
         run: |
-          SDKROOT=$(xcrun -sdk macosx --show-sdk-path) cargo build --release --target=x86_64-apple-darwin
-      - name: Create Universal Binary
+          export CFLAGS="-fno-stack-check"
+          export MACOSX_DEPLOYMENT_TARGET="10.9"
+
+      - name: Build
         run: |
-          lipo -create -output target/release/${{ env.GAME_EXECUTABLE_NAME }} target/aarch64-apple-darwin/release/${{ env.GAME_EXECUTABLE_NAME }} target/x86_64-apple-darwin/release/${{ env.GAME_EXECUTABLE_NAME }}
-      - name: Create release
+          cargo build --release --target x86_64-apple-darwin
+
+      - name: Prepare Package
         run: |
-          mkdir -p build/macos/src/Game.app/Contents/MacOS/assets
-          cp -r assets/ build/macos/src/Game.app/Contents/MacOS/assets
-          cp target/release/${{ env.GAME_EXECUTABLE_NAME }} build/macos/src/Game.app/Contents/MacOS/
-          mv build/macos/src/Game.app build/macos/src/${{ env.GAME_OSX_APP_NAME }}.app
-          ln -s /Applications build/macos/src/
-          hdiutil create -fs HFS+ -volname "${{ env.GAME_OSX_APP_NAME }}" -srcfolder build/macos/src ${{ env.GAME_EXECUTABLE_NAME }}.dmg
-      - name: Upload release
+          mkdir -p ${{ env.binary }}.app/Contents/MacOS
+          cp target/x86_64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp -r assets ${{ env.binary }}.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-intel.dmg
+
+      - name: Upload binaries to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.binary }}-macOS-intel.dmg
+          name: macOS-intel
+          retention-days: 1
+
+      - name: Upload binaries to release
+        if: ${{ env.add_binaries_to_github_release == 'true' }}
         uses: svenstaro/upload-release-action@v2
         with:
-          file: ${{ env.GAME_EXECUTABLE_NAME }}.dmg
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_macOS.dmg
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file:  ${{ env.binary }}-macOS-intel.dmg
+          asset_name: ${{ env.binary }}-macOS-intel-${{ steps.get_version.outputs.tag }}.dmg
+          tag: ${{ github.ref }}
           overwrite: true
 
-  build-linux:
-    runs-on: ubuntu-latest
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
+  # Build for MacOS Apple Silicon
+  release-macOS-apple-silicon:
+    runs-on: macOS-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@master
+      - uses: olegtarasov/get-tag@v2.1.2
+        id: get_version
+      - uses: actions/checkout@v4
         with:
-          toolchain: stable
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
-      - name: Build release
+          lfs: ${{ env.use_git_lfs }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - name: Environment 
+        # macOS 11 was the first version to support ARM
         run: |
-          cargo build --release
-      - name: Prepare release
+          export MACOSX_DEPLOYMENT_TARGET="11"
+
+      - name: Build
         run: |
-          chmod +x target/release/${{ env.GAME_EXECUTABLE_NAME }}
-          mv target/release/${{ env.GAME_EXECUTABLE_NAME }} .
-      - name: Bundle release
+          cargo build --release --target aarch64-apple-darwin
+
+      - name: Prepare Package
         run: |
-          tar -czf ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz ${{ env.GAME_EXECUTABLE_NAME }} assets
-      - name: Upload release
+          mkdir -p ${{ env.binary }}.app/Contents/MacOS
+          cp target/aarch64-apple-darwin/release/${{ env.binary }} ${{ env.binary }}.app/Contents/MacOS/
+          cp -r assets ${{ env.binary }}.app/Contents/MacOS/ || true # Try to copy, but ignore if it can't copy if source directory does not exist
+          hdiutil create -fs HFS+ -volname "${{ env.binary }}-macOS-apple-silicon" -srcfolder ${{ env.binary }}.app ${{ env.binary }}-macOS-apple-silicon.dmg
+
+      - name: Upload binaries to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.binary }}-macOS-apple-silicon.dmg
+          name: macOS-apple-silicon
+          retention-days: 1
+
+      - name: Upload binaries to release
+        if: ${{ env.add_binaries_to_github_release == 'true' }}
         uses: svenstaro/upload-release-action@v2
         with:
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_linux.tar.gz
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}-macOS-apple-silicon.dmg
+          asset_name: ${{ env.binary }}-macOS-apple-silicon-${{ steps.get_version.outputs.tag }}.dmg
+          tag: ${{ github.ref }}
           overwrite: true
 
-  build-windows:
-    runs-on: windows-latest
-    env:
-      VERSION: ${{needs.get-version.outputs.version}}
-      BUILD_INSTALLER: ${{ false }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install rust toolchain
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - name: Install dotnet
-        if: ${{ env.BUILD_INSTALLER }}
-        uses: actions/setup-dotnet@v3
-      - name: Build release
-        run: |
-          cargo build --release
-      - name: Prepare release
-        run: |
-          mkdir target/release/assets && cp -r assets target/release/assets
-      - name: Zip release
-        uses: vimtor/action-zip@v1.1
-        with:
-          files: target/release/assets/ target/release/${{ env.GAME_EXECUTABLE_NAME }}.exe
-          dest: ${{ env.GAME_EXECUTABLE_NAME }}_windows.zip
-      - name: Upload release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_windows.zip
-          overwrite: true
-
-  # build-web:
+  # check-if-upload-to-itch-is-configured:
   #   runs-on: ubuntu-latest
-  #   needs: get-version
-  #   env:
-  #     VERSION: ${{needs.get-version.outputs.version}}
+  #   outputs:
+  #     should-upload: ${{ steps.check-env.outputs.has-itch-target }}
   #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     - name: Install rust toolchain
-  #       uses: dtolnay/rust-toolchain@master
-  #       with:
-  #         toolchain: stable
-  #     - name: Install Dependencies
-  #       run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
-  #     - name: Install trunk
-  #       uses: jetli/trunk-action@v0.4.0
-  #       with:
-  #         version: latest
-  #     - name: Add wasm target
+  #     - id: check-env
   #       run: |
-  #         rustup target add wasm32-unknown-unknown
-  #     - name: Build Release
-  #       run: |
-  #         trunk build --release
-  #     - name: Optimize Wasm
-  #       uses: NiklasEi/wasm-opt-action@v2
-  #       with:
-  #         file: dist/*.wasm
-  #     - name: Zip release
-  #       uses: vimtor/action-zip@v1.1
-  #       with:
-  #         files: dist/
-  #         dest: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
-  #     - name: Upload release
-  #       uses: svenstaro/upload-release-action@v2
-  #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #         file: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
-  #         asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_web.zip
-  #         release_name: ${{ env.VERSION }}
-  #         tag: ${{ env.VERSION }}
-  #         overwrite: true
+  #         if [[ -z "$itch_target" ]]; then
+  #           echo "has-itch-target=no" >> $GITHUB_OUTPUT
+  #         else
+  #           echo "has-itch-target=yes" >> $GITHUB_OUTPUT
+  #         fi
 
-  # build-for-iOS:
-  #   runs-on: macos-latest
-  #   timeout-minutes: 30
-  #   needs: get-version
-  #   env:
-  #     VERSION: ${{needs.get-version.outputs.version}}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: dtolnay/rust-toolchain@stable
-  #     - name: Add iOS targets
-  #       run: rustup target add aarch64-apple-ios x86_64-apple-ios
-  #     - name: Build app for iOS
-  #       run: |
-  #         cd mobile
-  #         make xcodebuild-iphone-release
-  #         mkdir Payload
-  #         mv build/Build/Products/Release-iphoneos/*.app Payload
-  #         zip -r ${{ env.GAME_EXECUTABLE_NAME }}.zip Payload
-  #         mv ${{ env.GAME_EXECUTABLE_NAME }}.zip ${{ env.GAME_EXECUTABLE_NAME }}.ipa
-  #     - name: Upload release
-  #       uses: svenstaro/upload-release-action@v2
-  #       with:
-  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
-  #         file: mobile/${{ env.GAME_EXECUTABLE_NAME }}.ipa
-  #         asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_unsigned_ios.ipa
-  #         release_name: ${{ env.VERSION }}
-  #         tag: ${{ env.VERSION }}
-  #         overwrite: true
-
-  # build-for-Android:
+  # upload-to-itch:
   #   runs-on: ubuntu-latest
-  #   timeout-minutes: 30
-  #   needs: get-version
-  #   env:
-  #     VERSION: ${{needs.get-version.outputs.version}}
+  #   needs:
+  #     - check-if-upload-to-itch-is-configured
+  #     - release-wasm
+  #     - release-linux
+  #     - release-windows
+  #     - release-macOS-intel
+  #     - release-macOS-apple-silicon
+  #   if: ${{ needs.check-if-upload-to-itch-is-configured.outputs.should-upload == 'yes' }}
+
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: dtolnay/rust-toolchain@stable
-  #     - name: Add Android targets
-  #       # could add more targets like armv7-linux-androideabi here (then also add to cargo-apk config)
-  #       run: rustup target add aarch64-linux-android
-  #     - name: Install Cargo APK
-  #       run: cargo install --force cargo-apk
-  #     - name: Build app for Android
-  #       # This uses a debug build, since release builds require keystore configuration
-  #       # For AAB builds that can be pushed to the Play store, see the release-android-google-play workflow.
-  #       run: ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME cargo apk build --release
-  #     - name: Upload release
-  #       uses: svenstaro/upload-release-action@v2
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v4
   #       with:
-  #         file: target/debug/apk/${{ env.GAME_OSX_APP_NAME }}.apk
-  #         asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_android.apk
-  #         overwrite: true
+  #         path: ./builds
+
+  #     - name: Install butler
+  #       run: |
+  #         curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+  #         unzip butler.zip
+  #         chmod +x butler
+  #         ./butler -V
+  #     - uses: olegtarasov/get-tag@v2.1.2
+  #       id: get_version
+  #     - name: Upload to itch.io
+  #       env:
+  #         BUTLER_API_KEY: ${{ secrets.BUTLER_CREDENTIALS }}
+  #       run: |
+  #         for channel in $(ls builds); do
+  #           ./butler push \
+  #               --fix-permissions \
+  #               --userversion="${{ steps.get_version.outputs.tag }}" \
+  #               builds/$channel/* \
+  #               ${{ env.itch_target }}:$channel
+  #         done
