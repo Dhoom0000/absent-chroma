@@ -33,10 +33,12 @@ pub(super) fn super_plugins(app: &mut App) {
     };
 
     // Default Plugins with custom window settings
-    app.add_plugins(DefaultPlugins.set(custom_window_plugin));
-
-    // Logging plugin
-    app.add_plugins(log_filter_plugin);
+    app.add_plugins(
+        DefaultPlugins
+            .set(custom_window_plugin)
+            .set(log_filter_plugin)
+            .set(ImagePlugin::default_nearest()),
+    );
 
     // Networking plugin
     app.add_plugins((RenetClientPlugin, NetcodeClientPlugin));
@@ -45,8 +47,6 @@ pub(super) fn super_plugins(app: &mut App) {
     app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())));
 
     // Resources to store encryption keys and User Login details
-    app.insert_resource((UserLogin::default()));
+    app.insert_resource(UserLogin::default());
     app.insert_resource(KEMClientKey::default());
 }
-
-pub(super) fn startup_system_plugin(app: &mut App) {}

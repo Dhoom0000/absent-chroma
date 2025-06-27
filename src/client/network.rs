@@ -1,15 +1,13 @@
 use std::{
     net::{SocketAddr, UdpSocket},
-    time::{Duration, SystemTime},
+    time::SystemTime,
 };
 
-use bevy::{input::keyboard::KeyboardInput, prelude::*};
+use bevy::prelude::*;
 use bevy_renet::{
     netcode::{ClientAuthentication, ConnectToken, NetcodeClientTransport},
     renet::{ConnectionConfig, DefaultChannel, RenetClient},
-    *,
 };
-use bincode::config;
 use fips203::traits::SerDes;
 use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
 use local_ip_address::local_ip;
@@ -36,7 +34,7 @@ pub fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
     let client_id = current_time.as_millis() as u64;
 
     // A local server
-    let server_addr = SocketAddr::new(local_ip().unwrap(), 42069);
+    let server_addr = SocketAddr::new(local_ip().expect("Cannot find local ip."), 42069);
 
     // build.rs loads an environment private key; retrieve and parse it
     let private_key = get_private_key_env();

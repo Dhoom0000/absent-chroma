@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::ui::{FocusPolicy, UiPlugin, prelude::*};
+use bevy::ui::FocusPolicy;
+
+const MY_UI_RENDER_LAYER: [usize; 1] = [1];
 
 #[derive(Component, Clone)]
 pub enum UiLabelType {
@@ -17,16 +19,16 @@ pub fn show_main_menu(mut commands: Commands) {
     let camera_config = Camera {
         hdr: true,
         is_active: true,
-        order: 0,
+        order: 3,
         ..Default::default()
     };
 
     // add UiPickingCamera component to enable mouse events
     commands.spawn((
         camera_config,
-        Camera2d::default(),
+        Camera2d,
         UiPickingCamera,
-        RenderLayers::from_layers(&[0, 1]),
+        RenderLayers::from_layers(&MY_UI_RENDER_LAYER),
     ));
 
     // create and format a base node to use for all the UI entities, and then we only need to change some parts
@@ -66,6 +68,7 @@ pub fn show_main_menu(mut commands: Commands) {
         BorderRadius::all(Val::Px(5.)),
         Visibility::Visible,
         MainMenu,
+        RenderLayers::from_layers(&MY_UI_RENDER_LAYER),
     );
 
     main_menu_bundle.0.justify_self = JustifySelf::Stretch;
@@ -122,8 +125,8 @@ pub fn listen_ui_input(
 ) {
     // write logic to handle each combinations of the query
     for (interaction, label_type) in query.iter_mut() {
-        match interaction {
-            Interaction::Pressed => match label_type {
+        if interaction == &Interaction::Pressed {
+            match label_type {
                 UiLabelType::Quit => {
                     // If quit button pressed, exit the app
                     event_writer.write(AppExit::Success);
@@ -134,9 +137,7 @@ pub fn listen_ui_input(
                     let mut visibility = menu.single_mut().expect("Couldn't query the Main Menu.");
                     visibility.toggle_visible_hidden();
                 }
-            },
-
-            _ => {}
+            }
         }
     }
 }
