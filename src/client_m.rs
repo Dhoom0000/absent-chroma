@@ -13,5 +13,5 @@ mod common; //import the common module
 // Entry point for the client app
 
 fn main() {
-    client::app::start(); //start the client
+    App::new().add_plugins(client::Plugin).run();
 }
