@@ -6,16 +6,15 @@ use bevy::{
 use bevy_renet::{RenetClientPlugin, netcode::NetcodeClientPlugin};
 
 use crate::{
-    client::{input, network, player, ui},
+    client::{GAME_NAME, input, network, player, setup::SetupPlugin, ui::UIPlugin},
     common::{encryption::KEMClientKey, user::UserLogin},
 };
 
-const GAME_NAME: &str = "Absent Chroma";
+pub(super) struct SuperPlugin;
 
-pub(super) struct Plugin;
-
-impl bevy::prelude::Plugin for Plugin {
+impl Plugin for SuperPlugin {
     fn build(&self, app: &mut App) {
+        // configure custom settings for our window
         let custom_window_plugin = WindowPlugin {
             primary_window: Some(Window {
                 mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
@@ -37,13 +36,19 @@ impl bevy::prelude::Plugin for Plugin {
             ..default()
         };
 
-        // Default Plugins with custom window settings
+        // Default Plugins with custom window settings, log settings, and optional Imageplugin setting
         app.add_plugins(
             DefaultPlugins
                 .set(custom_window_plugin)
                 .set(log_filter_plugin)
                 .set(ImagePlugin::default_nearest()),
         );
+
+        // Setup UI and show main menu
+        app.add_plugins(UIPlugin);
+
+        // setup lights, camera and action
+        app.add_plugins(SetupPlugin);
 
         // Networking plugin
         app.add_plugins((RenetClientPlugin, NetcodeClientPlugin));
@@ -57,7 +62,6 @@ impl bevy::prelude::Plugin for Plugin {
 
         app.add_plugins(input::Plugin);
         app.add_plugins(network::Plugin);
-        app.add_plugins(ui::Plugin);
         app.add_plugins(player::Plugin);
     }
 }

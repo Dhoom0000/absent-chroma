@@ -5,7 +5,9 @@
 // #![allow(unused_parens)]
 // #![allow(dead_code)]
 
-pub use bevy::prelude::*;
+use bevy::prelude::*;
+
+use crate::client::Start;
 
 mod client; //import the client module
 mod common; //import the common module
@@ -13,5 +15,5 @@ mod common; //import the common module
 // Entry point for the client app
 
 fn main() {
-    App::new().add_plugins(client::Plugin).run();
+    App::new().add_plugins(Start).run();
 }

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::ui::FocusPolicy;
 
-const MY_UI_RENDER_LAYER: [usize; 1] = [1];
+use crate::client::{AppState, MY_UI_RENDER_LAYER};
 
 #[derive(Component, Clone)]
 enum UiLabelType {
@@ -13,10 +13,16 @@ enum UiLabelType {
 #[derive(Component)]
 pub struct MainMenu;
 
-pub struct Plugin;
+#[derive(Component)]
+struct MainMenuCamera;
 
-impl Plugin {
-    fn show_main_menu(mut commands: Commands) {
+pub(super) struct UIPlugin;
+
+#[derive(Resource)]
+struct MainMenuReady;
+
+impl UIPlugin {
+    fn init_main_menu(mut commands: Commands) {
         //spawn a UI Camera
 
         let camera_config = Camera {
@@ -32,6 +38,7 @@ impl Plugin {
             Camera2d,
             UiPickingCamera,
             RenderLayers::from_layers(&MY_UI_RENDER_LAYER),
+            MainMenuCamera,
         ));
 
         // create and format a base node to use for all the UI entities, and then we only need to change some parts
@@ -119,12 +126,14 @@ impl Plugin {
             parent.spawn(play_text_bundle);
             parent.spawn(quit_text_bundle);
         });
+
+        commands.insert_resource(MainMenuReady);
     }
 
     fn listen_ui_input(
         mut query: Query<(&Interaction, &UiLabelType), Changed<Interaction>>,
         mut event_writer: EventWriter<AppExit>,
-        mut menu: Query<&mut Visibility, With<MainMenu>>,
+        mut commands: Commands,
     ) {
         // write logic to handle each combinations of the query
         for (interaction, label_type) in query.iter_mut() {
@@ -136,20 +145,58 @@ impl Plugin {
                     }
 
                     UiLabelType::Play => {
+                        commands.set_state(AppState::LoadingScreen);
                         // if play button pressed, hide the menu
-                        let mut visibility =
-                            menu.single_mut().expect("Couldn't query the Main Menu.");
-                        visibility.toggle_visible_hidden();
                     }
                 }
             }
         }
     }
+
+    fn hide_menu(
+        mut menu: Query<&mut Visibility, With<MainMenu>>,
+        mut query: Query<&mut Camera, With<MainMenuCamera>>,
+    ) {
+        let mut main_menu_cam = query
+            .single_mut()
+            .expect("Error trying to get Main Menu Camera");
+
+        let mut visibility = menu
+            .single_mut()
+            .expect("Error trying to get Menu Visibility");
+
+        main_menu_cam.is_active = false;
+        *visibility = Visibility::Hidden;
+    }
+
+    fn show_menu(
+        mut menu: Query<&mut Visibility, With<MainMenu>>,
+        mut query: Query<&mut Camera, With<MainMenuCamera>>,
+    ) {
+        let mut main_menu_cam = query
+            .single_mut()
+            .expect("Error trying to get Main Menu Camera");
+
+        let mut visibility = menu
+            .single_mut()
+            .expect("Error trying to get Menu Visibility");
+
+        main_menu_cam.is_active = true;
+        *visibility = Visibility::Visible;
+    }
 }
 
-impl bevy::prelude::Plugin for Plugin {
+impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::show_main_menu);
+        app.add_systems(Startup, Self::init_main_menu);
+        app.add_systems(
+            OnEnter(AppState::MainMenu),
+            Self::show_menu.run_if(resource_exists::<MainMenuReady>),
+        );
+        app.add_systems(
+            OnExit(AppState::MainMenu),
+            Self::hide_menu.run_if(resource_exists::<MainMenuReady>),
+        );
         app.add_systems(Update, Self::listen_ui_input);
     }
 }

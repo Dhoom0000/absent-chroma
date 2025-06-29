@@ -5,7 +5,7 @@
 mod common; // Import the common module
 mod server; // Import the server module 
 
-pub use bevy::prelude::*;
+use bevy::prelude::*;
 
 // Entry point for the server app
 fn main() {
