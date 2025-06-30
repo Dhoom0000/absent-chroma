@@ -8,7 +8,11 @@ mod setup;
 mod ui;
 
 // import bevy crate prelude
-use bevy::prelude::*;
+use bevy::{
+    log::LogPlugin,
+    prelude::*,
+    window::{ExitCondition, WindowMode, WindowResolution},
+};
 
 use crate::client::plugins::SuperPlugin;
 
@@ -25,8 +29,9 @@ pub(crate) const MY_UI_RENDER_LAYER: [usize; 1] = [1];
 enum AppState {
     #[default]
     MainMenu,
-    InGame,
     LoadingScreen,
+    InGame,
+    PauseMenu,
     ConnectingToServer,
 }
 
@@ -34,7 +39,43 @@ pub(super) struct Start;
 
 impl Plugin for Start {
     fn build(&self, app: &mut App) {
-        app.add_plugins(SuperPlugin);
+        // configure custom settings for our window
+        let custom_window_plugin = WindowPlugin {
+            primary_window: Some(Window {
+                mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
+                resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
+                    .with_scale_factor_override(1.0),
+                title: GAME_NAME.to_string(),
+                name: Some(GAME_NAME.to_string()),
+                resizable: false,
+                ..default()
+            }),
+            exit_condition: ExitCondition::OnPrimaryClosed,
+            close_when_requested: true,
+        };
+
+        // define logging setting for the plugin
+        let log_filter_plugin = LogPlugin {
+            filter: "info,wgpu_core=warn,wgpu_hal=off,rechannel=warn".into(),
+            level: bevy::log::Level::DEBUG,
+            ..default()
+        };
+
+        // Default Plugins with custom window settings, log settings, and optional Imageplugin setting
+        app.add_plugins(
+            DefaultPlugins
+                .set(custom_window_plugin)
+                .set(log_filter_plugin)
+                .set(ImagePlugin::default_nearest()),
+        );
+
+        // Define and configure App states
         app.init_state::<AppState>();
+
+        // Setup the ClearColor
+        app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())));
+
+        // add all the other plugins and defined systems in their build scripts
+        app.add_plugins(SuperPlugin);
     }
 }

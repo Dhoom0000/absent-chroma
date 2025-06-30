@@ -2,11 +2,12 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::ui::FocusPolicy;
 
-use crate::client::{AppState, MY_UI_RENDER_LAYER};
+use crate::client::{AppState, MY_UI_RENDER_LAYER, setup::GameLoaded};
 
 #[derive(Component, Clone)]
 enum UiLabelType {
     Play,
+    Connect,
     Quit,
 }
 
@@ -35,7 +36,7 @@ impl UIPlugin {
         // add UiPickingCamera component to enable mouse events
         commands.spawn((
             camera_config,
-            Camera2d,
+            Camera2d::default(),
             UiPickingCamera,
             RenderLayers::from_layers(&MY_UI_RENDER_LAYER),
             MainMenuCamera,
@@ -117,6 +118,10 @@ impl UIPlugin {
         quit_text_bundle.0 = Text::new("Quit");
         quit_text_bundle.3 = UiLabelType::Quit;
 
+        let mut connect_text_bundle = quit_text_bundle.clone();
+        connect_text_bundle.0 = Text::new("Connect");
+        connect_text_bundle.3 = UiLabelType::Connect;
+
         // spawn the main node
         let main_node_id = commands.spawn(main_menu_bundle).id();
 
@@ -124,6 +129,7 @@ impl UIPlugin {
         commands.entity(main_node_id).with_children(|parent| {
             parent.spawn(title_text_bundle);
             parent.spawn(play_text_bundle);
+            parent.spawn(connect_text_bundle);
             parent.spawn(quit_text_bundle);
         });
 
@@ -134,6 +140,7 @@ impl UIPlugin {
         mut query: Query<(&Interaction, &UiLabelType), Changed<Interaction>>,
         mut event_writer: EventWriter<AppExit>,
         mut commands: Commands,
+        is_loaded: Option<Res<GameLoaded>>,
     ) {
         // write logic to handle each combinations of the query
         for (interaction, label_type) in query.iter_mut() {
@@ -145,8 +152,17 @@ impl UIPlugin {
                     }
 
                     UiLabelType::Play => {
-                        commands.set_state(AppState::LoadingScreen);
+                        // # Todo: Track a resource to check if Game is already loaded...
+                        if is_loaded.is_none() {
+                            commands.set_state(AppState::LoadingScreen);
+                        } else {
+                            commands.set_state(AppState::InGame);
+                        }
                         // if play button pressed, hide the menu
+                    }
+
+                    UiLabelType::Connect => {
+                        commands.set_state(AppState::ConnectingToServer);
                     }
                 }
             }

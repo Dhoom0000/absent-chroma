@@ -13,17 +13,20 @@ use fips203::traits::SerDes;
 use fips203::{ml_kem_512::EncapsKey, traits::Encaps};
 use local_ip_address::local_ip;
 
-use crate::common::{
-    encryption::KEMClientKey,
-    network::{
-        ClientMessage, PROTOCOL_ID, ServerMessage, get_private_key_env, string_to_fixed_bytes,
+use crate::{
+    client::AppState,
+    common::{
+        encryption::KEMClientKey,
+        network::{
+            ClientMessage, PROTOCOL_ID, ServerMessage, get_private_key_env, string_to_fixed_bytes,
+        },
+        user::UserLogin,
     },
-    user::UserLogin,
 };
 
-pub struct Plugin;
+pub struct NetworkPlugin;
 
-impl Plugin {
+impl NetworkPlugin {
     fn connect_to_server(mut commands: Commands, user: Res<UserLogin>) {
         // Insert a RenetClient
         let client = RenetClient::new(ConnectionConfig::default());
@@ -74,6 +77,8 @@ impl Plugin {
         let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
         let transport = NetcodeClientTransport::new(current_time, authentication, socket).unwrap();
         commands.insert_resource(transport);
+
+        commands.set_state(AppState::MainMenu);
     }
 
     fn client_ping(mut client: ResMut<RenetClient>, keyboard: Res<ButtonInput<KeyCode>>) {
@@ -144,9 +149,12 @@ impl Plugin {
     }
 }
 
-impl bevy::prelude::Plugin for Plugin {
+impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::connect_to_server);
+        app.add_systems(
+            OnEnter(AppState::ConnectingToServer),
+            Self::connect_to_server,
+        );
         app.add_systems(
             Update,
             (Self::receive_server_message, Self::client_ping).run_if(client_connected),

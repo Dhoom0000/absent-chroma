@@ -1,13 +1,13 @@
 use bevy::{prelude::*, render::view::RenderLayers, scene::SceneInstanceReady};
 
-use crate::client::MY_WORLD_RENDER_LAYER;
+use crate::client::{AppState, MY_WORLD_RENDER_LAYER};
 
 #[derive(Component, Clone)]
 pub struct Model;
 
-pub struct Plugin;
+pub struct PlayerPlugin;
 
-impl Plugin {
+impl PlayerPlugin {
     fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
         let scene = asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/malfoy.glb"));
 
@@ -50,6 +50,9 @@ impl Plugin {
         children: Query<&Children>,
         mesh_materials: Query<&MeshMaterial3d<StandardMaterial>>,
         mut asset_materials: ResMut<Assets<StandardMaterial>>,
+        scene: Query<Entity, With<Model>>,
+        mut render_layers: Query<&mut RenderLayers>,
+        mut commands: Commands,
     ) {
         for descendants in children.iter_descendants(trigger.target()) {
             if let Some(material) = mesh_materials
@@ -61,13 +64,27 @@ impl Plugin {
                 material.cull_mode = None;
             }
         }
+        for model_scene in scene {
+            for entity in children.iter_descendants(model_scene) {
+                if let Ok(mut render_layer) = render_layers.get_mut(entity) {
+                    *render_layer = RenderLayers::from_layers(&MY_WORLD_RENDER_LAYER);
+                } else {
+                    commands
+                        .entity(entity)
+                        .insert(RenderLayers::from_layers(&MY_WORLD_RENDER_LAYER));
+                }
+            }
+        }
     }
 }
 
-impl bevy::prelude::Plugin for Plugin {
+impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, Self::spawn_player);
-        app.add_systems(Update, (Self::rotate_player, Self::add_render_layer));
+        app.add_systems(OnEnter(AppState::LoadingScreen), Self::spawn_player);
+        app.add_systems(
+            Update,
+            (Self::rotate_player).run_if(in_state(AppState::InGame)),
+        );
         app.add_observer(Self::change_material);
     }
 }

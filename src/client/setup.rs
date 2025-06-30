@@ -54,7 +54,7 @@ impl SetupPlugin {
         // configure camera
         let camera_config = Camera {
             order: 0,
-            is_active: true,
+            is_active: false,
             hdr: true,
             msaa_writeback: true,
             clear_color: ClearColorConfig::Default,
@@ -86,8 +86,8 @@ impl SetupPlugin {
         );
 
         // Spawn the camera
-        commands.spawn(camera);
-
+        commands.spawn((camera, Visibility::Hidden));
+        commands.insert_resource(GameLoaded);
         commands.set_state(AppState::InGame);
     }
 
@@ -97,11 +97,30 @@ impl SetupPlugin {
             tf.rotate_x(-time.delta_secs() * PI / 12.0);
         });
     }
+
+    fn hide_scene(mut cameras: Query<(&mut Camera, &mut Visibility), With<MainCamera>>) {
+        for (mut cam, mut visibility) in cameras.iter_mut() {
+            cam.is_active = false;
+            *visibility = Visibility::Hidden;
+        }
+    }
+
+    fn show_scene(mut cameras: Query<(&mut Camera, &mut Visibility), With<MainCamera>>) {
+        for (mut cam, mut visibility) in cameras.iter_mut() {
+            cam.is_active = true;
+            *visibility = Visibility::Visible;
+        }
+    }
 }
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (Self::lights, Self::camera));
+        app.add_systems(
+            OnEnter(AppState::LoadingScreen),
+            (Self::lights, Self::camera).chain(),
+        );
+        app.add_systems(OnEnter(AppState::InGame), Self::show_scene);
+        app.add_systems(OnExit(AppState::InGame), Self::hide_scene);
         app.add_systems(Update, Self::sun_cycle.run_if(in_state(AppState::InGame)));
     }
 }
@@ -113,3 +132,6 @@ struct MainCamera;
 // Our Sun tag
 #[derive(Component)]
 struct Sun;
+
+#[derive(Resource)]
+pub(super) struct GameLoaded;
