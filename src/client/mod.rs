@@ -25,7 +25,7 @@ pub(crate) const MY_CAMERA_RENDER_LAYER: [usize; 1] = [2];
 pub(crate) const MY_UI_RENDER_LAYER: [usize; 1] = [1];
 
 // define some App state
-#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
 enum AppState {
     #[default]
     MainMenu,
@@ -34,6 +34,9 @@ enum AppState {
     PauseMenu,
     ConnectingToServer,
 }
+
+#[derive(Resource, Debug, Clone)]
+struct PreviousAppState(Option<AppState>);
 
 pub(super) struct Start;
 
@@ -71,6 +74,7 @@ impl Plugin for Start {
 
         // Define and configure App states
         app.init_state::<AppState>();
+        app.insert_resource(PreviousAppState(None));
 
         // Setup the ClearColor
         app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())));

@@ -1,5 +1,6 @@
-# [env]
-# RUST_BACKTRACE = "1"
+[env]
+LIB = "C:\\steamaudio_4.6.1\\steamaudio\\lib\\windows-x64"
+RUST_BACKTRACE = "1"
 
 [config]
 skip_core_tasks = true
@@ -12,7 +13,7 @@ script = [
     # 'cargo test',
     # 'cargo make doc',
     'start cmd /k "cargo r --bin client"',
-    'start cmd /k "cargo r --bin server"',
+    # 'start cmd /k "cargo r --bin server"',
 ]
 
 

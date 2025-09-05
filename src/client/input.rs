@@ -1,34 +1,61 @@
 use bevy::prelude::*;
 
-use crate::client::{AppState, setup::GameLoaded};
+use crate::client::{AppState, PreviousAppState};
 
 pub struct InputPlugin;
+
+#[derive(Resource, Debug)]
+pub struct Controls {
+    pub move_forward: KeyCode,
+    pub move_backward: KeyCode,
+    pub strafe_left: KeyCode,
+    pub strafe_right: KeyCode,
+    pub rise: Option<KeyCode>,
+    pub fall: Option<KeyCode>,
+}
+
+impl Controls {
+    pub fn new_gray() -> Self {
+        Controls {
+            move_forward: KeyCode::KeyW,
+            move_backward: KeyCode::KeyS,
+            strafe_left: KeyCode::KeyA,
+            strafe_right: KeyCode::KeyD,
+            rise: None,
+            fall: None,
+        }
+    }
+
+    pub fn new_note() -> Self {
+        Controls {
+            move_forward: KeyCode::KeyW,
+            move_backward: KeyCode::KeyS,
+            strafe_left: KeyCode::KeyA,
+            strafe_right: KeyCode::KeyD,
+            rise: Some(KeyCode::KeyZ),
+            fall: Some(KeyCode::KeyX),
+        }
+    }
+}
 
 impl InputPlugin {
     fn handle_keyboard_input(
         keyboard_input: Res<ButtonInput<KeyCode>>,
         mut commands: Commands,
         app_state: Res<State<AppState>>,
-        is_loaded: Option<Res<GameLoaded>>,
+        mut prev_state: ResMut<PreviousAppState>,
     ) {
         // Handle user input
         for key in keyboard_input.get_just_pressed() {
             match key {
                 // Toggle menu visibility if user presses 'Esc' key
-                KeyCode::Escape => match app_state.get() {
-                    AppState::InGame => {
-                        commands.set_state(AppState::MainMenu);
-                    }
+                KeyCode::Escape => match &prev_state.0 {
+                    None => {}
 
-                    AppState::MainMenu => {
-                        if is_loaded.is_none() {
-                            commands.set_state(AppState::LoadingScreen);
-                        } else {
-                            commands.set_state(AppState::InGame);
-                        }
+                    Some(state) => {
+                        commands.set_state(*state);
+                        prev_state.0 = Some(*app_state.get());
                     }
-
-                    _ => {}
                 },
                 _ => {}
             }

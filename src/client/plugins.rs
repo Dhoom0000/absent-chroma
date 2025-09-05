@@ -3,8 +3,8 @@ use bevy_renet::{RenetClientPlugin, netcode::NetcodeClientPlugin};
 
 use crate::{
     client::{
-        input::InputPlugin, network::NetworkPlugin, player::PlayerPlugin, setup::SetupPlugin,
-        ui::UIPlugin,
+        audio::AudioPlugin, input::InputPlugin, network::NetworkPlugin, player::PlayerPlugin,
+        setup::SetupPlugin, ui::UIPlugin,
     },
     common::{encryption::KEMClientKey, user::UserLogin},
 };
@@ -29,5 +29,6 @@ impl Plugin for SuperPlugin {
         app.add_plugins(NetworkPlugin);
         app.add_plugins(InputPlugin);
         app.add_plugins(PlayerPlugin);
+        app.add_plugins(AudioPlugin);
     }
 }

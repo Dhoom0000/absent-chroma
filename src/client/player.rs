@@ -14,13 +14,14 @@ impl PlayerPlugin {
         commands.spawn((
             Model,
             SceneRoot(scene),
-            Transform::from_xyz(0., 0., 10.).looking_at(Vec3::ZERO, Vec3::Y),
+            Viewpoint {translation: Vec3::new(0.0, 0.0, 15.0),..Default::default()},
+            Transform::from_xyz(0., 0., 15.).looking_at(Vec3::ZERO, Vec3::Y),
             RenderLayers::from_layers(&MY_WORLD_RENDER_LAYER),
         ));
     }
 
     fn rotate_player(mut query: Query<&mut Transform, With<Model>>, time: Res<Time>) {
-        for mut transform in query.iter_mut() {
+        for mut transform in &mut query {
             let rotation_const = 1.;
             transform.rotate(Quat::from_rotation_y(rotation_const * time.delta_secs()));
         }
@@ -76,6 +77,13 @@ impl PlayerPlugin {
             }
         }
     }
+
+    fn sync_viewpoint_transform(mut query: Query<(&mut Viewpoint, &Transform), With<Model>>) {
+        for (mut viewpoint, transform) in query.iter_mut() {
+            viewpoint.translation = transform.translation;
+            viewpoint.rotation = transform.rotation;
+        }
+    }
 }
 
 impl Plugin for PlayerPlugin {
@@ -85,6 +93,15 @@ impl Plugin for PlayerPlugin {
             Update,
             (Self::rotate_player).run_if(in_state(AppState::InGame)),
         );
+        app.add_systems(Update, Self::sync_viewpoint_transform);
         app.add_observer(Self::change_material);
     }
+}
+
+#[derive(Component, Default, Debug)]
+pub struct Viewpoint {
+    pub translation: Vec3,
+    pub rotation: Quat,
+    pub pitch: f32,
+    pub yaw: f32,
 }

@@ -9,7 +9,7 @@ use bevy::{
     render::{camera::Exposure, view::RenderLayers},
 };
 
-use crate::client::{AppState, MY_CAMERA_RENDER_LAYER};
+use crate::client::{AppState, MY_CAMERA_RENDER_LAYER, audio, player};
 
 pub struct SetupPlugin;
 
@@ -38,13 +38,13 @@ impl SetupPlugin {
             cascade_shadow_config.clone(),
         ));
 
-        commands.spawn((
-            Sun,
-            directional_light,
-            RenderLayers::from_layers(&MY_CAMERA_RENDER_LAYER),
-            cascade_shadow_config,
-            Transform::from_rotation(Quat::from_axis_angle(Vec3::X, 0.1)),
-        ));
+        // commands.spawn((
+        //     Sun,
+        //     directional_light,
+        //     RenderLayers::from_layers(&MY_CAMERA_RENDER_LAYER),
+        //     cascade_shadow_config,
+        //     Transform::from_rotation(Quat::from_axis_angle(Vec3::X, 0.1)),
+        // ));
     }
 
     fn camera(mut commands: Commands) {
@@ -67,7 +67,7 @@ impl SetupPlugin {
             projection,
             camera_config,
             MainCamera,
-            Transform::from_xyz(0., 1., 15.).looking_at(Vec3::ZERO, Vec3::Y),
+            Transform::from_xyz(0., 1., 20.).looking_at(Vec3::ZERO, Vec3::Y),
             RenderLayers::from_layers(&MY_CAMERA_RENDER_LAYER),
             Atmosphere::EARTH,
             AtmosphereSettings {
@@ -111,10 +111,80 @@ impl SetupPlugin {
             *visibility = Visibility::Visible;
         }
     }
+
+    fn setup_audio(
+        mut commands: Commands,
+        mut audio: ResMut<audio::Audio>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
+    ) {
+        let simulation_flags =
+            audionimbus::SimulationFlags::DIRECT | audionimbus::SimulationFlags::REFLECTIONS;
+        let source = audionimbus::Source::try_new(
+            &audio.simulator,
+            &audionimbus::SourceSettings {
+                flags: simulation_flags,
+            },
+        )
+        .unwrap();
+        audio.simulator.add_source(&source);
+        let source = audionimbus::Source::try_new(
+            &audio.simulator,
+            &audionimbus::SourceSettings {
+                flags: simulation_flags,
+            },
+        )
+        .unwrap();
+        audio.simulator.add_source(&source);
+        audio.simulator.commit();
+
+        let mut spawn_position = Vec3::new(0.0, 0.0, 10.0);
+        let mut viewpoint = player::Viewpoint {
+            translation: Vec3::new(0.0, 2.0, 0.0),
+            ..Default::default()
+        };
+
+        let samples = audio::sine_wave(440., 48000, 0.5, 48000 * 2 );
+
+        let sphere = meshes.add(Sphere { radius: 0.1 });
+        let sphere_material = materials.add(StandardMaterial {
+            emissive: LinearRgba {
+                red: 0.0,
+                green: 0.0,
+                blue: 1000.0,
+                alpha: 1.0,
+            },
+            ..default()
+        });
+
+        let source_position = Transform::from_xyz(0.0, 2.0, 0.0);
+        commands.spawn((
+            Mesh3d(sphere.clone()),
+            MeshMaterial3d(sphere_material.clone()),
+            source_position,
+            audio::AudioSource {
+                source,
+                data: samples,
+                is_repeating: true,
+                position: 0,
+            },
+        ));
+
+        spawn_position = Vec3::new(0.0, 0.0, 15.0);
+
+
+
+        audio.scene.commit();
+
+
+    }
 }
 
 impl Plugin for SetupPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(OnEnter(AppState::InGame), Self::setup_audio);
+
+
         app.add_systems(
             OnEnter(AppState::LoadingScreen),
             (Self::lights, Self::camera).chain(),

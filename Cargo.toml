@@ -12,14 +12,18 @@ name = "server"
 path = "src/server_m.rs"
 
 [dependencies]
+audionimbus = "0.8.1"
 bevy = { version = "0.16.0", features = ["dynamic_linking"] }
 bevy_renet = { git = "https://github.com/lucaspoffo/renet.git", rev = "d2c5074bc232781889c26acfe68d8622b8ebd88e"}
 bincode = { version = "2.0.1" }
 chacha20poly1305 = "0.10.1"
+cpal = "0.16.0"
 fips203 = "0.4.3"
 getrandom = "0.3.3"
+itertools = "0.14.0"
 local-ip-address = "0.6.5"
 log = { version = "*", features = ["max_level_debug", "release_max_level_warn"] }
+rodio = "0.21.1"
 
 
 # Enable a small amount of optimization in the dev profile.

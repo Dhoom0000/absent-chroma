@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::ui::FocusPolicy;
 
-use crate::client::{AppState, MY_UI_RENDER_LAYER, setup::GameLoaded};
+use crate::client::{AppState, MY_UI_RENDER_LAYER, PreviousAppState, setup::GameLoaded};
 
 #[derive(Component, Clone)]
 enum UiLabelType {
@@ -141,6 +141,7 @@ impl UIPlugin {
         mut event_writer: EventWriter<AppExit>,
         mut commands: Commands,
         is_loaded: Option<Res<GameLoaded>>,
+        mut log_app_state: ResMut<PreviousAppState>,
     ) {
         // write logic to handle each combinations of the query
         for (interaction, label_type) in query.iter_mut() {
@@ -154,14 +155,17 @@ impl UIPlugin {
                     UiLabelType::Play => {
                         // # Todo: Track a resource to check if Game is already loaded...
                         if is_loaded.is_none() {
+                            log_app_state.0 = Some(AppState::MainMenu);
                             commands.set_state(AppState::LoadingScreen);
                         } else {
+                            log_app_state.0 = Some(AppState::MainMenu);
                             commands.set_state(AppState::InGame);
                         }
                         // if play button pressed, hide the menu
                     }
 
                     UiLabelType::Connect => {
+                        log_app_state.0 = Some(AppState::MainMenu);
                         commands.set_state(AppState::ConnectingToServer);
                     }
                 }
