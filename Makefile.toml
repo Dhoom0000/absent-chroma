@@ -12,7 +12,7 @@ script = [
     'cargo b',
     # 'cargo test',
     # 'cargo make doc',
-    'start cmd /k "cargo r --bin client"',
+    # 'start cmd /k "cargo r --bin client"',
     # 'start cmd /k "cargo r --bin server"',
 ]
 
