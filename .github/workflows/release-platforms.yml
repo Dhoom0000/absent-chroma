@@ -1,3 +1,4 @@
+name: Release-Multi-platform
 on:
   workflow_dispatch:
 
