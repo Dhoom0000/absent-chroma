@@ -1,0 +1,27 @@
+   67 Cargo.toml
+   21 Makefile.toml
+   24 build.rs
+    3 rust-toolchain.toml
+  598 src/client/audio.rs
+   94 src/client/input.rs
+   93 src/client/mod.rs
+  152 src/client/network.rs
+  110 src/client/player.rs
+   35 src/client/plugins.rs
+  110 src/client/scene.rs
+  194 src/client/setup.rs
+  228 src/client/ui.rs
+   23 src/client_m.rs
+   66 src/common/encryption.rs
+    8 src/common/enemies.rs
+    5 src/common/mod.rs
+  226 src/common/network.rs
+   32 src/common/players.rs
+   19 src/common/user.rs
+   39 src/server/app.rs
+    2 src/server/mod.rs
+  205 src/server/network.rs
+   13 src/server_m.rs
+ 2367 total
+
+Inserted: 13518 Deleted: 3615 Total: 17133

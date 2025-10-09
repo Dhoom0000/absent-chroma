@@ -1,2 +1,2 @@
-pub mod app;
-mod network;
+mod encryption;
+pub mod network;

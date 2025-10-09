@@ -1,85 +1,80 @@
-// define the modeles in this module
-mod audio;
-mod input;
-mod network;
-mod player;
-mod plugins;
-mod setup;
-mod ui;
-
-// import bevy crate prelude
 use bevy::{
     log::LogPlugin,
     prelude::*,
     window::{ExitCondition, WindowMode, WindowResolution},
 };
 
-use crate::client::plugins::SuperPlugin;
+use crate::client::network::login::UserLogin;
 
-// My app name
+mod controls;
+mod network;
+mod plugins;
+mod ui;
+mod world;
+
 const GAME_NAME: &str = "Absent Chroma";
 
-// define some Render Layers to use throughout the game
-pub(crate) const MY_WORLD_RENDER_LAYER: [usize; 1] = [2];
-pub(crate) const MY_CAMERA_RENDER_LAYER: [usize; 1] = [2];
-pub(crate) const MY_UI_RENDER_LAYER: [usize; 1] = [1];
+pub const _DEFAULT_RENDER_LAYER: usize = 0;
+pub const LAYER_UI: usize = 1;
+pub const LAYER_WORLD: usize = 2;
+pub const LAYER_PLAYER: usize = 3;
+pub const LAYER_HUD: usize = 4;
 
-// define some App state
-#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
-enum AppState {
-    #[default]
-    MainMenu,
-    LoadingScreen,
-    InGame,
-    PauseMenu,
-    ConnectingToServer,
-}
+#[derive(Clone, Debug)]
+pub struct Create;
 
-#[derive(Resource, Debug, Clone)]
-struct PreviousAppState(Option<AppState>);
-
-pub(super) struct Start;
-
-impl Plugin for Start {
+impl Plugin for Create {
     fn build(&self, app: &mut App) {
-        // configure custom settings for our window
         let custom_window_plugin = WindowPlugin {
             primary_window: Some(Window {
                 mode: WindowMode::BorderlessFullscreen(MonitorSelection::Current),
-                resolution: WindowResolution::new(2560. / 4., 1440. / 4.)
-                    .with_scale_factor_override(1.0),
+                resolution: WindowResolution::new(2560, 1440).with_scale_factor_override(1.0),
                 title: GAME_NAME.to_string(),
                 name: Some(GAME_NAME.to_string()),
                 resizable: false,
                 ..default()
             }),
+            primary_cursor_options: None,
             exit_condition: ExitCondition::OnPrimaryClosed,
             close_when_requested: true,
         };
 
-        // define logging setting for the plugin
         let log_filter_plugin = LogPlugin {
             filter: "info,wgpu_core=warn,wgpu_hal=off,rechannel=warn".into(),
             level: bevy::log::Level::DEBUG,
             ..default()
         };
 
-        // Default Plugins with custom window settings, log settings, and optional Imageplugin setting
         app.add_plugins(
             DefaultPlugins
                 .set(custom_window_plugin)
-                .set(log_filter_plugin)
-                .set(ImagePlugin::default_nearest()),
+                .set(log_filter_plugin),
         );
 
-        // Define and configure App states
         app.init_state::<AppState>();
         app.insert_resource(PreviousAppState(None));
 
-        // Setup the ClearColor
-        app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("171717").unwrap())));
+        app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#171717").unwrap())));
 
-        // add all the other plugins and defined systems in their build scripts
-        app.add_plugins(SuperPlugin);
+        app.insert_resource(UserLogin::default());
+
+        app.add_plugins(plugins::SuperPlugin);
     }
 }
+
+/// Global application states.
+///
+/// Used to control transition between menus, game, and network connection screens.
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default, Copy)]
+enum AppState {
+    #[default]
+    MainMenu,
+    Load,
+    InGame,
+    Pause,
+    ConnectToServer,
+}
+
+/// Resource tracking the last active [`AppState`].
+#[derive(Resource, Debug, Clone)]
+struct PreviousAppState(Option<AppState>);

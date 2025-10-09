@@ -8,14 +8,15 @@ skip_core_tasks = true
 [tasks.default]
 description = "Build binaries and run each in a different shell"
 script = [
-    # 'cargo fmt',
+    'cargo fmt',
     'cargo b',
     # 'cargo test',
     # 'cargo make doc',
     # 'start cmd /k "cargo r --bin client"',
     # 'start cmd /k "cargo r --bin server"',
+    'cargo r --bin server',
+    # "wsl bash -c './stats.sh'",
 ]
-
 
 [tasks.doc]
 command = "cargo"

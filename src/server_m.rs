@@ -1,13 +1,28 @@
-// Allow some for beginner code
-// #[allow(dead_code)]
-// #[allow(unused_imports)]
-// #[allow(unused_braces)]
-mod common; // Import the common module
-mod server; // Import the server module 
+use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{app::ScheduleRunnerPlugin, log::LogPlugin, prelude::*};
+use bevy_renet::{RenetServerPlugin, netcode::NetcodeServerPlugin};
 
-// Entry point for the server app
+use crate::server::network::NetworkPlugin;
+
+mod common;
+mod server;
+
 fn main() {
-    server::app::start(); // Call the start function from the server module
+    let mut app = App::new();
+
+    app.add_plugins(
+        MinimalPlugins.set(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
+            1.0 / 60.0,
+        ))),
+    );
+
+    app.add_plugins(LogPlugin::default());
+
+    app.add_plugins(RenetServerPlugin);
+    app.add_plugins(NetcodeServerPlugin);
+
+    app.add_plugins(NetworkPlugin);
+
+    app.run();
 }
