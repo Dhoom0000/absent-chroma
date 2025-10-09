@@ -1,0 +1,64 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  release-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      - name: install dependencies
+        run: |
+          sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev
+      - name: build
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+      - name: prepare package
+        run: |
+          mkdir linux
+          cp target/x86_64-unknown-linux-gnu/release/client linux/
+          cp target/x86_64-unknown-linux-gnu/release/server linux/
+          cp -r assets linux/ || true
+      - name: package as a zip
+        working-directory: ./linux
+        run: |
+          zip --recurse-path ../absent-chroma.zip .
+      - name: upload binaries to artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: absent-chroma.zip
+          name: linux
+          retention-days: 1
+  
+  
+  release-macos-apple-silicon:
+    runs-on: macOS-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+      - name: Environment
+        run: |
+          export MACOSX_DEPLOYMENT_TARGET="11"
+      - name: build
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+      - name: prepare package
+        run: |
+          mkdir -p client.app/Contents/MacOS
+          cp target/aarch64-apple-darwin/release/client client.app/Contents/MacOS
+          # mkdir -p server.app/Contents/MacOS
+          # cp target/aarch64-apple-darwin/release/server server.app/Contents/MacOS
+          cp -r assets client.app/Contents/MacOS/ || true
+          hdiutil create -fs HFS+ -volname "client-macOS-apple-silicon" -srcfolder client.app client-macOS-apple-silicon.dmg
+          # hdiutil create -fs HFS+ -volname "server-macOS-apple-silicon" -srcfolder server.app server-macOS-apple-silicon.dmg
+      - name: upload binaries to artifact
+        uses: actions/upload-artifact@v4
+        with: 
+          path: client-macOS-apple-silicon.dmg
+          name: macOS-apple-silicon
+          retention-days: 1
+    
+    
