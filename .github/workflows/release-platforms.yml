@@ -1,3 +1,4 @@
+name: Release-Multi-platform
 on:
   workflow_dispatch:
 
@@ -6,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-gnu
@@ -36,6 +38,7 @@ jobs:
   release-macos-apple-silicon:
     runs-on: macOS-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
