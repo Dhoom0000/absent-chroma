@@ -1,39 +1,40 @@
 use bevy::prelude::*;
 use bevy_renet::renet::{DefaultChannel, RenetClient};
 use cryptoxide::chacha20poly1305::ChaCha20Poly1305;
-use fips203::{SharedSecretKey, traits::SerDes};
+use fips203::traits::SerDes;
 
 use crate::{
     client::network::encryption::{Nonce, SskStore, get_ciphertext},
     common::network::{ClientMessage, NETWORK_CHANNELS, ServerMessage},
 };
 
-pub fn receive_kem_messages(mut client: ResMut<RenetClient>, mut commands: Commands) {
-    for channel_id in NETWORK_CHANNELS {
-        while let Some(message) = client.receive_message(channel_id) {
-            let (server_message, _) = bincode::decode_from_slice::<ServerMessage, _>(
-                &message,
-                bincode::config::standard(),
-            )
-            .unwrap_or_default();
+pub fn receive_kem_messages(
+    mut client: ResMut<RenetClient>,
+    mut ssks: ResMut<SskStore>,
+    mut nonce_res: ResMut<Nonce>,
+) {
+    let channel_id = 3;
+    while let Some(message) = client.receive_message(channel_id) {
+        let (server_message, _) =
+            bincode::decode_from_slice::<ServerMessage, _>(&message, bincode::config::standard())
+                .unwrap_or_default();
 
-            match server_message {
-                ServerMessage::KEMEncapsKey(e_key) => {
-                    let (ssk, ct) = get_ciphertext(e_key);
+        match server_message {
+            ServerMessage::KEMEncapsKey(e_key) => {
+                let (ssk, ct) = get_ciphertext(e_key);
 
-                    let message = ClientMessage::KEMCipherText(ct);
+                let message = ClientMessage::KEMCipherText(ct);
 
-                    let ciphertext = bincode::encode_to_vec(message, bincode::config::standard())
-                        .expect("Error converting ciphertext to vec.");
+                let ciphertext = bincode::encode_to_vec(message, bincode::config::standard())
+                    .expect("Error converting ciphertext to vec.");
 
-                    client.send_message(DefaultChannel::ReliableOrdered, ciphertext);
+                client.send_message(3, ciphertext);
 
-                    commands.insert_resource(SskStore(ssk.into_bytes().into()));
-                    commands.insert_resource(Nonce([0u8; 12]));
-                }
-
-                _ => {}
+                ssks.0 = ssk.into_bytes().into();
+                nonce_res.0 = [0u8; 12];
             }
+
+            _ => {}
         }
     }
 }
@@ -48,7 +49,7 @@ pub fn receive_encrypted(
         while let Some(message) = client.receive_message(channel_id) {
             let key = &*ssks.0;
 
-            let mut output = vec![0u8; message.len() + 16];
+            let mut output = vec![0u8; message.len() - 16];
 
             let nonce = &nonce_res.0;
 
@@ -59,7 +60,7 @@ pub fn receive_encrypted(
             cipher.decrypt(
                 &message[..message.len() - 16],
                 &mut output,
-                &message[message.len()..],
+                &message[message.len() - 16..],
             );
 
             for i in (0..12).rev() {
@@ -81,7 +82,7 @@ pub fn receive_encrypted(
 
             match server_message {
                 ServerMessage::Pong => {
-                    info!("Received Pong!");
+                    info!("Received Pong! (Encrypted)");
                 }
 
                 ServerMessage::KEMEncapsKey(e_key) => {

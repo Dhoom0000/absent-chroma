@@ -16,7 +16,11 @@ use zeroize::Zeroize;
 use crate::{
     client::{
         AppState,
-        network::{login::UserLogin, messages::receive_kem_messages},
+        network::{
+            encryption::{Nonce, SskStore},
+            login::UserLogin,
+            messages::{receive_encrypted, receive_kem_messages},
+        },
     },
     common::network::{UserData, get_private_key_env},
 };
@@ -99,7 +103,12 @@ impl NetworkPlugin {
 
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
+        app.insert_resource(SskStore([0u8; 32].into()));
+        app.insert_resource(Nonce([0u8; 12]));
         app.add_systems(OnEnter(AppState::ConnectToServer), Self::connect_to_server);
-        app.add_systems(Update, receive_kem_messages.run_if(client_connected));
+        app.add_systems(
+            Update,
+            (receive_kem_messages, receive_encrypted).run_if(client_connected),
+        );
     }
 }

@@ -47,7 +47,6 @@ impl NetworkPlugin {
                 max_memory_usage_bytes: 5 * 1024 * 1024,
             });
 
-
         let server = RenetServer::new(connection_config);
 
         commands.insert_resource(server);

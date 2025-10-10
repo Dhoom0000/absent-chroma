@@ -22,7 +22,27 @@ pub fn receive_client_messages(
             let user_data = users.0.get(&client_id).unwrap_or(&default_data);
             let username = user_data.to_username();
 
-            while let Some(message) = server.receive_message(client_id, channel_id) {
+            while let Some(mut message) = server.receive_message(client_id, channel_id) {
+                if channel_id != 3 {
+                    let key = &**ssks.0.get(&client_id).expect("Could not find Client Key.");
+
+                    let mut output = vec![0u8; message.len() + 16];
+
+                    let nonce = nonce_res.0.entry(client_id).or_insert([0u8; 12]);
+
+                    let aad = [0u8; 0];
+
+                    let mut cipher = ChaCha20Poly1305::new(key, nonce, &aad);
+
+                    cipher.decrypt(
+                        &message[..message.len() - 16],
+                        &mut output,
+                        &message[message.len() - 16..],
+                    );
+
+                    message = output.into();
+                }
+
                 let (client_message, _) = bincode::decode_from_slice::<ClientMessage, _>(
                     &message,
                     bincode::config::standard(),
@@ -31,12 +51,16 @@ pub fn receive_client_messages(
 
                 match client_message {
                     ClientMessage::Ping => {
-                        let pong = bincode::encode_to_vec(
-                            ServerMessage::Pong,
-                            bincode::config::standard(),
-                        )
-                        .unwrap_or_default();
-                        server.send_message(client_id, DefaultChannel::ReliableOrdered, pong);
+                        let ssk = &**ssks.0.get(&client_id).expect("No SSK for the client");
+
+                        send_encrypted(
+                            &mut server,
+                            ssk,
+                            &ServerMessage::Pong,
+                            client_id,
+                            &mut nonce_res,
+                        );
+                        // server.send_message(client_id, DefaultChannel::ReliableOrdered, pong);
 
                         info!("Received Ping from client: {} id: {}", username, client_id);
                     }

@@ -26,7 +26,7 @@ pub fn try_encryption(server: &mut RenetServer, client_id: u64, d_key_res: &mut 
 
     let message = bincode::encode_to_vec(server_message, bincode::config::standard()).unwrap();
 
-    server.send_message(client_id, DefaultChannel::ReliableOrdered, message);
+    server.send_message(client_id, 3, message);
 
     d_key_res.0.insert(client_id, d_key.into());
 

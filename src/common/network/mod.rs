@@ -59,5 +59,5 @@ pub const NETWORK_CHANNELS: [u8; 4] = [
     DefaultChannel::ReliableOrdered as u8,
     DefaultChannel::ReliableUnordered as u8,
     DefaultChannel::Unreliable as u8,
-    3,
+    3, // For unencrypted KEM handshake
 ];
