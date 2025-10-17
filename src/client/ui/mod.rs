@@ -36,7 +36,7 @@ impl UiLabelType {
 impl UiPlugin {
     fn render_main_menu(mut commands: Commands) {
         let camera_config = Camera {
-            order: 1,
+            order: 10,
             is_active: true,
             ..default()
         };

@@ -52,6 +52,7 @@ impl Plugin for Create {
         );
 
         app.init_state::<AppState>();
+
         app.insert_resource(PreviousAppState(None));
 
         app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#171717").unwrap())));

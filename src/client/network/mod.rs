@@ -24,9 +24,9 @@ use crate::{
     },
     common::network::{UserData, get_private_key_env},
 };
-mod encryption;
+pub mod encryption;
 pub mod login;
-mod messages;
+pub mod messages;
 
 pub struct NetworkPlugin;
 

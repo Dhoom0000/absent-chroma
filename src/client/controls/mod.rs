@@ -1,7 +1,11 @@
 use bevy::prelude::*;
+use bevy_renet::client_connected;
+use bevy_renet::renet::RenetClient;
 
+use crate::client::network::encryption::{Nonce, SskStore};
 use crate::client::world::player;
 use crate::client::{AppState, PreviousAppState};
+use crate::common::network::ClientMessage;
 
 pub struct ControlsPlugin;
 
@@ -57,6 +61,28 @@ impl ControlsPlugin {
             }
         }
     }
+
+    fn send_ping(
+        keyboard: Res<ButtonInput<KeyCode>>,
+        mut client: ResMut<RenetClient>,
+        ssks: Res<SskStore>,
+        mut nonce_res: ResMut<Nonce>,
+    ) {
+        for key_pressed in keyboard.get_just_pressed() {
+            match key_pressed {
+                KeyCode::Space => {
+                    let ssk = &*ssks.0;
+                    ClientMessage::send_encrypted(
+                        &mut client,
+                        ssk,
+                        &ClientMessage::Ping,
+                        &mut nonce_res,
+                    );
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl Plugin for ControlsPlugin {
@@ -65,5 +91,6 @@ impl Plugin for ControlsPlugin {
             Update,
             (Self::keyboard_input).run_if(in_state(AppState::InGame)),
         );
+        app.add_systems(Update, (Self::send_ping).run_if(client_connected));
     }
 }

@@ -6,7 +6,7 @@ use bevy_renet::{RenetServerPlugin, netcode::NetcodeServerPlugin};
 use crate::server::network::NetworkPlugin;
 
 mod common;
-mod server;
+pub mod server;
 
 fn main() {
     let mut app = App::new();

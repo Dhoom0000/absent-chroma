@@ -14,7 +14,7 @@ use bevy::{
 
 use std::f32::consts::PI;
 
-use crate::client::{AppState, LAYER_WORLD};
+use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD};
 
 pub mod player;
 
@@ -58,7 +58,7 @@ impl WorldPlugin {
         let camera_config = Camera {
             order: 0,
             is_active: true,
-            msaa_writeback: false,
+            msaa_writeback: true,
             clear_color: ClearColorConfig::None,
             ..Default::default()
         };
@@ -77,6 +77,43 @@ impl WorldPlugin {
                     rendering_method: bevy::pbr::AtmosphereMode::Raymarched,
                     ..Default::default()
                 },
+                Exposure::SUNLIGHT,
+                Tonemapping::AcesFitted,
+                Bloom::NATURAL,
+                bevy::light::AtmosphereEnvironmentMapLight::default(),
+                Hdr,
+                Fxaa::default(),
+                Transform::from_xyz(0., 10., -10.).looking_at(Vec3::ZERO, Vec3::Y),
+            ))
+            .insert((DistanceFog {
+                color: Color::srgba(0.53, 0.7, 0.9, 1.0),
+                directional_light_color: Color::srgba(1., 0.95, 0.85, 1.),
+                directional_light_exponent: 30.,
+                falloff: FogFalloff::from_visibility_colors(
+                    100.,
+                    Color::srgb(0.35, 0.5, 0.75),
+                    Color::srgb(0.7, 0.85, 1.0),
+                ),
+            },));
+    }
+
+    fn player_camera(mut commands: Commands) {
+        let projection = PerspectiveProjection::default();
+
+        let camera_config = Camera {
+            order: 1,
+            is_active: true,
+            msaa_writeback: true,
+            clear_color: ClearColorConfig::None,
+            ..Default::default()
+        };
+
+        commands
+            .spawn((
+                RenderLayers::from_layers(&[LAYER_PLAYER]),
+                camera_config,
+                Projection::Perspective(projection),
+                Camera3d::default(),
                 Exposure::SUNLIGHT,
                 Tonemapping::AcesFitted,
                 Bloom::NATURAL,
@@ -135,7 +172,10 @@ impl WorldPlugin {
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, (Self::lights, Self::camera).chain());
+        app.add_systems(
+            Startup,
+            (Self::lights, Self::camera, Self::player_camera).chain(),
+        );
 
         app.add_systems(Startup, Self::spawn_plane);
 

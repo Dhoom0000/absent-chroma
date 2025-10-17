@@ -26,7 +26,7 @@ pub fn receive_client_messages(
                 if channel_id != 3 {
                     let key = &**ssks.0.get(&client_id).expect("Could not find Client Key.");
 
-                    let mut output = vec![0u8; message.len() + 16];
+                    let mut output = vec![0u8; message.len() - 16];
 
                     let nonce = nonce_res.0.entry(client_id).or_insert([0u8; 12]);
 
@@ -53,16 +53,15 @@ pub fn receive_client_messages(
                     ClientMessage::Ping => {
                         let ssk = &**ssks.0.get(&client_id).expect("No SSK for the client");
 
-                        send_encrypted(
+                        info!("Received Ping from client: {} id: {}", username, client_id);
+
+                        ServerMessage::send_encrypted(
                             &mut server,
                             ssk,
                             &ServerMessage::Pong,
                             client_id,
                             &mut nonce_res,
                         );
-                        // server.send_message(client_id, DefaultChannel::ReliableOrdered, pong);
-
-                        info!("Received Ping from client: {} id: {}", username, client_id);
                     }
 
                     ClientMessage::KEMCipherText(ct) => {
@@ -71,7 +70,7 @@ pub fn receive_client_messages(
 
                         dks.0.remove(&client_id);
 
-                        send_encrypted(
+                        ServerMessage::send_encrypted(
                             &mut server,
                             &ssk.clone().into_bytes(),
                             &ServerMessage::Pong,
@@ -87,55 +86,4 @@ pub fn receive_client_messages(
             }
         }
     }
-}
-
-fn send_encrypted(
-    server: &mut RenetServer,
-    ssk: &[u8; 32],
-    message: &ServerMessage,
-    client_id: u64,
-    nonce_res: &mut Nonce,
-) {
-    let key = ssk;
-
-    let default_nonce = [0u8; 12];
-
-    let nonce = nonce_res.0.entry(client_id).or_insert(default_nonce);
-
-    let aad = [0u8; 0];
-
-    let mut cipher = ChaCha20Poly1305::new(key, &nonce, &aad);
-
-    let mut input = vec![];
-
-    let mut channel_id = DefaultChannel::ReliableOrdered;
-
-    match *message {
-        ServerMessage::Pong => {
-            input = bincode::encode_to_vec(ServerMessage::Pong, config::standard())
-                .expect("Error sending encmsg.");
-            channel_id = DefaultChannel::ReliableOrdered;
-            info!("Sent Ping (Encrypted).");
-        }
-
-        _ => {}
-    }
-
-    let mut output = vec![0u8; input.len() + 16];
-    let mut out_tag = [0u8; 16];
-
-    cipher.encrypt(&input, &mut output[..input.len()], &mut out_tag);
-
-    output[input.len()..].copy_from_slice(&out_tag);
-
-    for i in (0..12).rev() {
-        if nonce[i] == 255 {
-            nonce[i] = 0;
-        } else {
-            nonce[i] += 1;
-            break;
-        }
-    }
-
-    server.send_message(client_id, channel_id, output);
 }
