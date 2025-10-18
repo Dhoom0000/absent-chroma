@@ -46,7 +46,9 @@ pub fn receive_encrypted(
     mut nonce_res: ResMut<Nonce>,
 ) {
     for channel_id in NETWORK_CHANNELS {
-        if channel_id == 3 {continue;}
+        if channel_id == 3 {
+            continue;
+        }
         while let Some(message) = client.receive_message(channel_id) {
             let key = &*ssks.0;
 

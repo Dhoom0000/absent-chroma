@@ -14,7 +14,7 @@ path = "src/server_m.rs"
 
 [dependencies]
 audionimbus = "0.8.3"
-bevy = { version = "0.17.2", features = ["bevy_gltf", "bevy_solari", "wayland", "web", "webgpu"] }
+bevy = { version = "0.17.2", features = ["bevy_gltf", "bevy_solari", "ktx2", "wayland", "web", "webgpu"] }
 fips203 = "0.4.3"
 bevy_renet = { git = "https://github.com/lucaspoffo/renet.git", rev= "ce4e3a09fd061428e146a9d88d1fb29d7d9bc474" }
 zeroize = "1.8.2"
@@ -22,6 +22,7 @@ local-ip-address = "0.6.5"
 rand = "0.9.2"
 bincode = "2.0.1"
 cryptoxide = "0.5.1"
+noiz = "0.3.0"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

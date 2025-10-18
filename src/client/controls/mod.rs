@@ -13,18 +13,20 @@ impl ControlsPlugin {
     fn keyboard_input(
         keyboard: Res<ButtonInput<KeyCode>>,
         app_state: Res<State<AppState>>,
+        mut next_state: ResMut<NextState<AppState>>,
         mut commands: Commands,
         mut player_transform: Query<&mut Transform, With<player::Player>>,
         time: Res<Time>,
     ) {
         for key_pressed in keyboard.get_pressed() {
             match key_pressed {
-                KeyCode::Escape => {
-                    if *app_state.get() == AppState::InGame {
+                KeyCode::Escape => match *app_state.get() {
+                    AppState::InGame => {
                         commands.insert_resource(PreviousAppState(Some(AppState::InGame)));
-                        commands.set_state(AppState::MainMenu);
+                        next_state.set(AppState::MainMenu);
                     }
-                }
+                    _ => {}
+                },
 
                 KeyCode::KeyW => {
                     let mut transform = player_transform

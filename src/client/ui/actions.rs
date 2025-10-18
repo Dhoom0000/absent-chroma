@@ -12,8 +12,13 @@ pub fn listen_ui_input(
         if *interaction == Interaction::Pressed {
             match *label {
                 UiLabelType::Play => {
-                    app_state_log.0 = Some(AppState::MainMenu);
-                    commands.set_state(AppState::Load);
+                    if app_state_log.0 == Some(AppState::InGame) {
+                        app_state_log.0 = Some(AppState::MainMenu);
+                        commands.set_state(AppState::InGame);
+                    } else {
+                        app_state_log.0 = Some(AppState::MainMenu);
+                        commands.set_state(AppState::Load);
+                    }
                 }
 
                 UiLabelType::Connect => {

@@ -1,4 +1,5 @@
 use bevy::{
+    camera::visibility::RenderLayers,
     log::LogPlugin,
     prelude::*,
     window::{ExitCondition, WindowMode, WindowResolution},
@@ -14,11 +15,11 @@ mod world;
 
 const GAME_NAME: &str = "Absent Chroma";
 
-pub const _DEFAULT_RENDER_LAYER: usize = 0;
-pub const LAYER_UI: usize = 1;
-pub const LAYER_WORLD: usize = 2;
-pub const LAYER_PLAYER: usize = 3;
-pub const LAYER_HUD: usize = 4;
+pub const _DEFAULT_RENDER_LAYER: RenderLayers = RenderLayers::layer(0);
+pub const LAYER_UI: RenderLayers = RenderLayers::layer(1);
+pub const LAYER_WORLD: RenderLayers = RenderLayers::layer(2);
+pub const LAYER_PLAYER: RenderLayers = RenderLayers::layer(3);
+pub const LAYER_HUD: RenderLayers = RenderLayers::layer(4);
 
 #[derive(Clone, Debug)]
 pub struct Create;
@@ -54,8 +55,6 @@ impl Plugin for Create {
         app.init_state::<AppState>();
 
         app.insert_resource(PreviousAppState(None));
-
-        app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#171717").unwrap())));
 
         app.insert_resource(UserLogin::default());
 
