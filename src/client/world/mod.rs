@@ -1,17 +1,13 @@
 use bevy::{
-    anti_alias::{fxaa::Fxaa, taa::TemporalAntiAliasing},
-    camera::{
-        Exposure,
-        visibility::{NoFrustumCulling, RenderLayers},
-    },
-    color::palettes,
+    anti_alias::taa::TemporalAntiAliasing,
+    camera::visibility::RenderLayers,
     core_pipeline::{Skybox, tonemapping::Tonemapping},
     light::{
         AtmosphereEnvironmentMapLight, CascadeShadowConfigBuilder, SunDisk, VolumetricFog,
         VolumetricLight, light_consts::lux,
     },
-    math::{VectorSpace, cubic_splines::LinearSpline},
-    pbr::{Atmosphere, AtmosphereSettings},
+    math::cubic_splines::LinearSpline,
+    pbr::{Atmosphere, AtmosphereSettings, ScreenSpaceAmbientOcclusion},
     post_process::{
         auto_exposure::{AutoExposure, AutoExposureCompensationCurve, AutoExposurePlugin},
         bloom::Bloom,
@@ -41,13 +37,13 @@ pub struct LoadState {
 struct Sun;
 
 #[derive(Component, Clone)]
-struct MainCamera;
+pub struct MainCamera;
 
 impl WorldPlugin {
     fn lights(mut commands: Commands, mut load_state: ResMut<LoadState>) {
         let cascade_shadow_config = CascadeShadowConfigBuilder {
             first_cascade_far_bound: 0.3,
-            maximum_distance: 10.0,
+            maximum_distance: 3.0,
             ..Default::default()
         }
         .build();
@@ -55,15 +51,14 @@ impl WorldPlugin {
         commands.spawn((
             DirectionalLight {
                 shadows_enabled: true,
-                illuminance: lux::FULL_MOON_NIGHT * 500.0,
+                illuminance: lux::AMBIENT_DAYLIGHT,
                 ..Default::default()
             },
             cascade_shadow_config,
             Sun,
             SunDisk::EARTH,
-            LAYER_PLAYER.with(2),
-            Transform::default(),
-            VolumetricLight,
+            RenderLayers::from_layers(&[LAYER_WORLD, LAYER_PLAYER]),
+            Transform::from_xyz(1., 4., 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         ));
 
         load_state.lights = true;
@@ -74,83 +69,70 @@ impl WorldPlugin {
         asset_server: Res<AssetServer>,
         mut compensation_curves: ResMut<Assets<AutoExposureCompensationCurve>>,
         mut load_state: ResMut<LoadState>,
-        mut meshes: ResMut<Assets<Mesh>>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
     ) {
         let metering_mask =
             asset_server.load(Path::new("textures").join("basic_metering_mask.png"));
         let night_sky = asset_server.load(Path::new("textures").join("night.ktx2"));
+        // let day_sky = asset_server.load(Path::new("textures").join("specular.ktx2"));
 
-        commands.spawn((
-            Camera3d::default(),
-            Camera {
-                clear_color: ClearColorConfig::None,
-                is_active: true,
-                order: 1,
-                ..Default::default()
-            },
-            LAYER_PLAYER,
-            Transform::from_xyz(10.0, 0.10, -10.0).looking_at(Vec3::Y * 10., Vec3::Y),
-            Hdr,
-            Msaa::Sample4,
-        ));
-
-        commands.spawn((
-            Camera3d::default(),
-            MainCamera,
-            Camera {
-                clear_color: ClearColorConfig::None,
-                order: 0,
-                is_active: true,
-                ..Default::default()
-            },
-            Hdr,
-            AutoExposure {
-                range: -4.5..=14.0,
-                speed_brighten: 60.0,
-                speed_darken: 20.0,
-                metering_mask: metering_mask.clone(),
-                compensation_curve: compensation_curves.add(
-                    AutoExposureCompensationCurve::from_curve(LinearSpline::new([
-                        vec2(-8.0, 0.5),
-                        vec2(4.0, -2.0),
-                    ]))
-                    .unwrap(),
-                ),
-                ..Default::default()
-            },
-            Skybox {
-                image: night_sky,
-                brightness: 500.0,
-                rotation: Quat::default(),
-            },
-            Tonemapping::AcesFitted,
-            Transform::from_xyz(0.0, 0.15, -1.0).looking_at(Vec3::ZERO, Vec3::Y),
-            Bloom::NATURAL,
-            Atmosphere::EARTH,
-            AtmosphereSettings {
-                aerial_view_lut_max_distance: 3.2e5,
-                scene_units_to_m: 1e+4,
-                ..Default::default()
-            },
-            LAYER_WORLD,
-            Visibility::Hidden,
-            Msaa::Sample4,
-        ));
-
+        commands
+            .spawn((
+                Camera3d::default(),
+                MainCamera,
+                Camera {
+                    clear_color: ClearColorConfig::Default,
+                    order: 0,
+                    is_active: true,
+                    ..Default::default()
+                },
+                Projection::Perspective(PerspectiveProjection::default()),
+                Hdr,
+                AutoExposure {
+                    range: -4.5..=14.0,
+                    speed_brighten: 60.0,
+                    speed_darken: 20.0,
+                    metering_mask: metering_mask.clone(),
+                    compensation_curve: compensation_curves.add(
+                        AutoExposureCompensationCurve::from_curve(LinearSpline::new([
+                            vec2(-8.0, 0.5),
+                            vec2(4.0, -2.0),
+                        ]))
+                        .unwrap(),
+                    ),
+                    ..Default::default()
+                },
+                Tonemapping::AcesFitted,
+                Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                Bloom::NATURAL,
+                Atmosphere::EARTH,
+                AtmosphereSettings {
+                    ..Default::default()
+                },
+                AtmosphereEnvironmentMapLight::default(),
+                RenderLayers::from_layers(&[LAYER_WORLD, LAYER_PLAYER]),
+                Msaa::Off,
+                Visibility::Visible,
+            ))
+            .insert((
+                Skybox {
+                    image: night_sky.clone(),
+                    brightness: 5000.,
+                    ..Default::default()
+                },
+                // DistanceFog {
+                //     color: Color::srgba(0.05, 0.08, 0.15, 1.0),
+                //     directional_light_color: Color::srgba(0.1, 0.12, 0.2, 0.2),
+                //     directional_light_exponent: 10.0,
+                //     falloff: FogFalloff::from_visibility_colors(
+                //         30.0,
+                //         Color::srgb(0.05, 0.08, 0.15),
+                //         Color::srgb(0.1, 0.12, 0.2),
+                //     ),
+                // },
+                TemporalAntiAliasing::default(),
+                ScreenSpaceAmbientOcclusion::default(),
+            ));
         load_state.camera = true;
-
-        commands.spawn((
-            Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::splat(100.0)))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgb(0.74, 0.89, 0.99),
-                perceptual_roughness: 0.0,
-                cull_mode: None,
-                ..default()
-            })),
-            Transform::from_xyz(0.0, -0.1, 0.0),
-            LAYER_WORLD,
-        ));
     }
 
     fn show_game(mut query: Query<&mut Visibility, With<MainCamera>>) {
@@ -166,12 +148,8 @@ impl WorldPlugin {
     }
 
     fn sun_cycle(mut suns: Query<&mut Transform, With<Sun>>, time: Res<Time>) {
-        let t = ((time.elapsed_secs() - 1.0).max(0.0) + 90.0 * 0.3);
-        let day_fract = ((t % 90.0) / 90.0).clamp(0.0, 1.0);
-        // For each sun, rotate them around X-axis.
-        suns.iter_mut().for_each(|mut tf| {
-            tf.rotation = Quat::from_euler(EulerRot::ZXY, PI / 3.0, 0.0, -day_fract * PI * 2.0);
-        });
+        suns.iter_mut()
+            .for_each(|mut tf| tf.rotate_x(-time.delta_secs() * PI / 10.0));
     }
 
     fn is_loaded(load_state: Res<LoadState>, mut next_state: ResMut<NextState<AppState>>) {
@@ -184,7 +162,12 @@ impl WorldPlugin {
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(LoadState::default());
-        app.insert_resource(AmbientLight::NONE);
+        app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#000000").unwrap())));
+        app.insert_resource(AmbientLight {
+            color: Color::srgb(0.05, 0.07, 0.1),
+            brightness: 500.,
+            affects_lightmapped_meshes: false,
+        });
         app.add_plugins(AutoExposurePlugin);
         app.add_systems(
             OnEnter(AppState::Load),

@@ -45,7 +45,7 @@ impl UiPlugin {
             camera_config,
             Camera2d::default(),
             UiPickingCamera,
-            LAYER_UI,
+            RenderLayers::layer(LAYER_UI),
         ));
 
         let base_node = Node {
@@ -84,7 +84,7 @@ impl UiPlugin {
             BorderRadius::all(Val::Px(5.)),
             Visibility::Visible,
             MainMenu,
-            LAYER_UI,
+            RenderLayers::layer(LAYER_UI),
         );
 
         main_menu_bundle.0.justify_self = JustifySelf::Stretch;

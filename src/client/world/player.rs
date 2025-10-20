@@ -2,20 +2,19 @@ use std::{f32::consts::PI, path::Path};
 
 use bevy::{
     camera::visibility::{NoFrustumCulling, RenderLayers},
-    gltf::GltfMesh,
     prelude::*,
     scene::SceneInstanceReady,
 };
 
-use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD, world::LoadState};
+use crate::client::{AppState, LAYER_PLAYER, world::LoadState};
 
 pub struct PlayerPlugin;
 
 #[derive(Clone, Component)]
 pub struct Player;
 
-#[derive(Resource)]
-struct MyScene(pub Handle<Scene>);
+// #[derive(Resource)]
+// struct MyScene(pub Handle<Scene>);
 
 #[derive(Component, Default, Debug)]
 pub struct Viewpoint {
@@ -33,23 +32,43 @@ impl PlayerPlugin {
         commands.spawn((
             SceneRoot(scene.clone()),
             Player,
-            Transform::from_xyz(0.0, 10., 10.0)
+            Transform::from_xyz(0.0, 0., -5.0)
                 .looking_at(Vec3::ZERO, Vec3::Y)
                 .with_scale(Vec3::splat(1.)),
         ));
-
-        commands.insert_resource(MyScene(scene));
     }
 
     fn edit_scene(
         observer: On<SceneInstanceReady>,
         mut commands: Commands,
         mut load_state: ResMut<LoadState>,
+        children_query: Query<&Children>,
     ) {
-        commands
-            .entity(observer.entity)
-            .insert(LAYER_PLAYER)
-            .insert_recursive::<Children>(LAYER_PLAYER);
+        fn set_layer_recursive(
+            commands: &mut Commands,
+            children_query: &Query<&Children>,
+            entity: Entity,
+            layer: RenderLayers,
+        ) {
+            commands.entity(entity).insert(layer);
+            if let Ok(children) = children_query.get(entity) {
+                for &child in children {
+                    set_layer_recursive(
+                        commands,
+                        children_query,
+                        child,
+                        RenderLayers::layer(LAYER_PLAYER),
+                    );
+                }
+            }
+        }
+
+        set_layer_recursive(
+            &mut commands,
+            &children_query,
+            observer.entity,
+            RenderLayers::layer(LAYER_PLAYER),
+        );
 
         load_state.player = true;
     }

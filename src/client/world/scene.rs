@@ -1,6 +1,7 @@
 use bevy::{
     asset::RenderAssetUsages,
     camera::visibility::{NoFrustumCulling, RenderLayers},
+    light::FogVolume,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
 };
@@ -42,7 +43,88 @@ impl ScenePlugin {
         for x in 0..width {
             for z in 0..depth {
                 positions.push([x as f32, heights[x][z], z as f32]);
-                normals.push([0.0, 1.0, 0.0]);
+                // get heights of neighbors, clamp at edges
+                let h_l = if x > 0 {
+                    heights[x - 1][z]
+                } else {
+                    heights[x][z]
+                };
+                let h_r = if x < width - 1 {
+                    heights[x + 1][z]
+                } else {
+                    heights[x][z]
+                };
+                let h_d = if z > 0 {
+                    heights[x][z - 1]
+                } else {
+                    heights[x][z]
+                };
+                let h_u = if z < depth - 1 {
+                    heights[x][z + 1]
+                } else {
+                    heights[x][z]
+                };
+
+                // compute gradient
+                let dx = h_r - h_l;
+                let dz = h_u - h_d;
+
+                // normal vector points up opposite to gradient
+                let normal = Vec3::new(-dx, 2.0, -dz).normalize();
+
+                normals.push([normal.x, normal.y, normal.z]);
+
+                uvs.push([x as f32 / width as f32, z as f32 / depth as f32]);
+            }
+        }
+
+        for x in 0..width - 1 {
+            for z in 0..depth - 1 {
+                let i0 = (x * depth + z) as u32;
+                let i1 = i0 + 1;
+                let i2 = i0 + depth as u32;
+                let i3 = i2 + 1;
+                indices.extend_from_slice(&[i0, i2, i1, i1, i2, i3]);
+            }
+        }
+
+        // compute positions, normals, uvs, indices
+        let mut positions = Vec::new();
+        let mut normals = Vec::new();
+        let mut uvs = Vec::new();
+        let mut indices = Vec::new();
+
+        for x in 0..width {
+            for z in 0..depth {
+                positions.push([x as f32, heights[x][z], z as f32]);
+
+                // slope-based normals
+                let h_l = if x > 0 {
+                    heights[x - 1][z]
+                } else {
+                    heights[x][z]
+                };
+                let h_r = if x < width - 1 {
+                    heights[x + 1][z]
+                } else {
+                    heights[x][z]
+                };
+                let h_d = if z > 0 {
+                    heights[x][z - 1]
+                } else {
+                    heights[x][z]
+                };
+                let h_u = if z < depth - 1 {
+                    heights[x][z + 1]
+                } else {
+                    heights[x][z]
+                };
+
+                let dx = h_r - h_l;
+                let dz = h_u - h_d;
+                let normal = Vec3::new(-dx, 2.0, -dz).normalize();
+                normals.push([normal.x, normal.y, normal.z]);
+
                 uvs.push([x as f32 / width as f32, z as f32 / depth as f32]);
             }
         }
@@ -72,12 +154,14 @@ impl ScenePlugin {
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.4, 0.8, 0.3),
-                perceptual_roughness: 1.0,
-                metallic: 0.0,
+                perceptual_roughness: 1.,
+                depth_bias: -10000.,
+                alpha_mode: AlphaMode::Blend,
+                cull_mode: None,
                 ..default()
             })),
-            Transform::from_xyz(-50.0, -10.0, -50.0),
-            LAYER_WORLD,
+            Transform::from_xyz(-(width as f32) / 2.0, -10.0, -(depth as f32) / 2.0),
+            RenderLayers::layer(LAYER_WORLD),
         ));
 
         load_state.terrain = true;
