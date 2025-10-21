@@ -7,7 +7,7 @@ use bevy::{
 };
 use noiz::{cell_noise::PerNearestPoint, prelude::*, rng::NoiseRng};
 
-use crate::client::{AppState, LAYER_WORLD, world::LoadState};
+use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD, world::LoadState};
 
 pub struct ScenePlugin;
 
@@ -155,7 +155,7 @@ impl ScenePlugin {
             MeshMaterial3d(materials.add(StandardMaterial {
                 base_color: Color::srgb(0.4, 0.8, 0.3),
                 perceptual_roughness: 1.,
-                depth_bias: -10000.,
+                depth_bias: -100.,
                 alpha_mode: AlphaMode::Blend,
                 cull_mode: None,
                 ..default()

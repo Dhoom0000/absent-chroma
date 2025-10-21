@@ -37,13 +37,16 @@ pub struct LoadState {
 struct Sun;
 
 #[derive(Component, Clone)]
+struct Moon;
+
+#[derive(Component, Clone)]
 pub struct MainCamera;
 
 impl WorldPlugin {
     fn lights(mut commands: Commands, mut load_state: ResMut<LoadState>) {
         let cascade_shadow_config = CascadeShadowConfigBuilder {
             first_cascade_far_bound: 0.3,
-            maximum_distance: 3.0,
+            maximum_distance: 10.0,
             ..Default::default()
         }
         .build();
@@ -51,14 +54,26 @@ impl WorldPlugin {
         commands.spawn((
             DirectionalLight {
                 shadows_enabled: true,
-                illuminance: lux::AMBIENT_DAYLIGHT,
+                illuminance: lux::FULL_MOON_NIGHT * 500.,
+                ..Default::default()
+            },
+            cascade_shadow_config.clone(),
+            Moon,
+            RenderLayers::from_layers(&[LAYER_WORLD]),
+            Transform::from_xyz(5., 4., 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ));
+
+        commands.spawn((
+            DirectionalLight {
+                shadows_enabled: true,
+                illuminance: lux::DARK_OVERCAST_DAY,
                 ..Default::default()
             },
             cascade_shadow_config,
             Sun,
             SunDisk::EARTH,
-            RenderLayers::from_layers(&[LAYER_WORLD, LAYER_PLAYER]),
-            Transform::from_xyz(1., 4., 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+            RenderLayers::from_layers(&[LAYER_WORLD]),
+            Transform::from_xyz(-5., -4., 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         ));
 
         load_state.lights = true;
@@ -119,19 +134,15 @@ impl WorldPlugin {
                     brightness: 5000.,
                     ..Default::default()
                 },
-                // DistanceFog {
-                //     color: Color::srgba(0.05, 0.08, 0.15, 1.0),
-                //     directional_light_color: Color::srgba(0.1, 0.12, 0.2, 0.2),
-                //     directional_light_exponent: 10.0,
-                //     falloff: FogFalloff::from_visibility_colors(
-                //         30.0,
-                //         Color::srgb(0.05, 0.08, 0.15),
-                //         Color::srgb(0.1, 0.12, 0.2),
-                //     ),
-                // },
+                DistanceFog {
+                    color: Color::WHITE,
+                    falloff: FogFalloff::Exponential { density: 0.00005 },
+                    ..Default::default()
+                },
                 TemporalAntiAliasing::default(),
                 ScreenSpaceAmbientOcclusion::default(),
             ));
+
         load_state.camera = true;
     }
 
@@ -147,9 +158,30 @@ impl WorldPlugin {
         *visibility = Visibility::Hidden;
     }
 
-    fn sun_cycle(mut suns: Query<&mut Transform, With<Sun>>, time: Res<Time>) {
-        suns.iter_mut()
-            .for_each(|mut tf| tf.rotate_x(-time.delta_secs() * PI / 10.0));
+    fn sun_cycle(
+        mut moons: Query<&mut Transform, (With<Moon>, Without<Sun>)>,
+        mut suns: Query<&mut Transform, (With<Sun>, Without<Moon>)>,
+        time: Res<Time>,
+        skyboxes: Query<&mut Skybox>,
+    ) {
+        moons.iter_mut().for_each(|mut tf| {
+            tf.rotate_x(-time.delta_secs() * PI / 24.0);
+            tf.rotate_z(time.delta_secs() * PI / 24.0);
+        });
+
+        suns.iter_mut().for_each(|mut tf| {
+            tf.rotate_x(-time.delta_secs() * PI / 24.0);
+            tf.rotate_z(time.delta_secs() * PI / 24.0);
+        });
+
+        for mut skybox in skyboxes {
+            skybox.rotation = Quat::from_euler(
+                EulerRot::ZYX,
+                -PI / 3.0,
+                0.0,
+                time.elapsed_secs() * PI / 48.0,
+            );
+        }
     }
 
     fn is_loaded(load_state: Res<LoadState>, mut next_state: ResMut<NextState<AppState>>) {
@@ -163,11 +195,12 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(LoadState::default());
         app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#000000").unwrap())));
-        app.insert_resource(AmbientLight {
-            color: Color::srgb(0.05, 0.07, 0.1),
-            brightness: 500.,
-            affects_lightmapped_meshes: false,
-        });
+        // app.insert_resource(AmbientLight {
+        //     color: Color::srgb(0.05, 0.07, 0.1),
+        //     brightness: 500.,
+        //     affects_lightmapped_meshes: false,
+        // });
+        app.insert_resource(AmbientLight::NONE);
         app.add_plugins(AutoExposurePlugin);
         app.add_systems(
             OnEnter(AppState::Load),

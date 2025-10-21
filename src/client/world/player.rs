@@ -29,13 +29,27 @@ impl PlayerPlugin {
         let scene = asset_server
             .load(GltfAssetLabel::Scene(0).from_asset(Path::new("models").join("malfoy.glb")));
 
-        commands.spawn((
-            SceneRoot(scene.clone()),
-            Player,
-            Transform::from_xyz(0.0, 0., -5.0)
-                .looking_at(Vec3::ZERO, Vec3::Y)
-                .with_scale(Vec3::splat(1.)),
-        ));
+        commands
+            .spawn((
+                SceneRoot(scene.clone()),
+                Player,
+                Transform::from_xyz(0.0, 0., 5.0)
+                    .looking_at(Vec3::ZERO, Vec3::Y)
+                    .with_scale(Vec3::splat(1.)),
+            ))
+            .with_children(|parent| {
+                parent.spawn((
+                    PointLight {
+                        intensity: 100_000.,
+                        color: Color::srgba(1.0, 0.55, 0.0, 1.),
+                        range: 1_000.,
+                        shadows_enabled: true,
+                        ..Default::default()
+                    },
+                    RenderLayers::layer(LAYER_PLAYER),
+                    Transform::from_xyz(-1.5, 0.2, 0.0),
+                ));
+            });
     }
 
     fn edit_scene(
