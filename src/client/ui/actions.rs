@@ -7,7 +7,11 @@ pub fn listen_ui_input(
     mut commands: Commands,
     mut event_writer: MessageWriter<AppExit>,
     mut app_state_log: ResMut<PreviousAppState>,
+    game_state: Res<State<AppState>>,
 ) {
+    if *game_state != AppState::MainMenu {
+        return;
+    }
     for (label, interaction) in query.iter() {
         if *interaction == Interaction::Pressed {
             match *label {

@@ -1,12 +1,13 @@
 use std::{f32::consts::PI, path::Path};
 
+use avian3d::prelude::*;
 use bevy::{
     camera::visibility::{NoFrustumCulling, RenderLayers},
     prelude::*,
     scene::SceneInstanceReady,
 };
 
-use crate::client::{AppState, LAYER_PLAYER, world::LoadState};
+use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD, world::LoadState};
 
 pub struct PlayerPlugin;
 
@@ -33,9 +34,16 @@ impl PlayerPlugin {
             .spawn((
                 SceneRoot(scene.clone()),
                 Player,
-                Transform::from_xyz(0.0, 0., 5.0)
+                RigidBody::Dynamic,
+                Transform::from_xyz(0.0, 0., 1.0)
                     .looking_at(Vec3::ZERO, Vec3::Y)
                     .with_scale(Vec3::splat(1.)),
+                // Collider::capsule(1. / 2., 0.01),
+                ColliderConstructorHierarchy::new(ColliderConstructor::Capsule {
+                    radius: 0.01,
+                    height: 0.01,
+                }),
+                LockedAxes::ROTATION_LOCKED,
             ))
             .with_children(|parent| {
                 parent.spawn((
@@ -64,7 +72,11 @@ impl PlayerPlugin {
             entity: Entity,
             layer: RenderLayers,
         ) {
-            commands.entity(entity).insert(layer);
+            commands.entity(entity).insert((
+                layer,
+                // CollisionMargin(0.1),
+            ));
+
             if let Ok(children) = children_query.get(entity) {
                 for &child in children {
                     set_layer_recursive(

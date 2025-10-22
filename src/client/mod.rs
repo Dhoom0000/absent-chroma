@@ -1,5 +1,4 @@
 use bevy::{
-    camera::visibility::RenderLayers,
     log::LogPlugin,
     prelude::*,
     window::{ExitCondition, WindowMode, WindowResolution},

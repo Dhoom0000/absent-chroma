@@ -131,28 +131,32 @@ impl UiPlugin {
         });
     }
 
-    fn show_menu(query: Option<Query<&mut Camera, With<UiPickingCamera>>>) {
+    fn show_menu(query: Option<Query<(&mut Camera, &mut Visibility), With<UiPickingCamera>>>) {
         match query {
             Some(mut camera) => {
-                let mut rendering = camera
+                let (mut rendering, mut visibility) = camera
                     .single_mut()
                     .expect("Error querying Main Menu Camera");
 
                 rendering.is_active = true;
+
+                *visibility = Visibility::Visible;
             }
 
             None => {}
         }
     }
 
-    fn hide_menu(query: Option<Query<&mut Camera, With<UiPickingCamera>>>) {
+    fn hide_menu(query: Option<Query<(&mut Camera, &mut Visibility), With<UiPickingCamera>>>) {
         match query {
             Some(mut camera) => {
-                let mut rendering = camera
+                let (mut rendering, mut visibility) = camera
                     .single_mut()
                     .expect("Error querying Main Menu Camera");
 
                 rendering.is_active = false;
+
+                *visibility = Visibility::Hidden;
             }
 
             None => {}

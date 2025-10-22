@@ -1,3 +1,4 @@
+use avian3d::PhysicsPlugins;
 use bevy::{
     anti_alias::taa::TemporalAntiAliasing,
     camera::visibility::RenderLayers,
@@ -100,7 +101,12 @@ impl WorldPlugin {
                     is_active: true,
                     ..Default::default()
                 },
-                Projection::Perspective(PerspectiveProjection::default()),
+                Projection::Perspective(PerspectiveProjection {
+                    near: 0.1,
+                    far: 1000.,
+                    fov: (PI / 2.0) - (PI / 12.0),
+                    ..Default::default()
+                }),
                 Hdr,
                 AutoExposure {
                     range: -4.5..=14.0,
@@ -117,7 +123,7 @@ impl WorldPlugin {
                     ..Default::default()
                 },
                 Tonemapping::AcesFitted,
-                Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::ZERO, Vec3::Y),
+                Transform::from_xyz(0.0, 0.0, -5.0).looking_at(Vec3::ZERO, Vec3::Y),
                 Bloom::NATURAL,
                 Atmosphere::EARTH,
                 AtmosphereSettings {
@@ -140,7 +146,6 @@ impl WorldPlugin {
                     ..Default::default()
                 },
                 TemporalAntiAliasing::default(),
-                ScreenSpaceAmbientOcclusion::default(),
             ));
 
         load_state.camera = true;
@@ -164,14 +169,16 @@ impl WorldPlugin {
         time: Res<Time>,
         skyboxes: Query<&mut Skybox>,
     ) {
+        let scale_inv = 18.0;
+
         moons.iter_mut().for_each(|mut tf| {
-            tf.rotate_x(-time.delta_secs() * PI / 24.0);
-            tf.rotate_z(time.delta_secs() * PI / 24.0);
+            tf.rotate_x(-time.delta_secs() * PI / scale_inv);
+            tf.rotate_z(time.delta_secs() * PI / scale_inv);
         });
 
         suns.iter_mut().for_each(|mut tf| {
-            tf.rotate_x(-time.delta_secs() * PI / 24.0);
-            tf.rotate_z(time.delta_secs() * PI / 24.0);
+            tf.rotate_x(-time.delta_secs() * PI / scale_inv);
+            tf.rotate_z(time.delta_secs() * PI / scale_inv);
         });
 
         for mut skybox in skyboxes {
@@ -179,7 +186,7 @@ impl WorldPlugin {
                 EulerRot::ZYX,
                 -PI / 3.0,
                 0.0,
-                time.elapsed_secs() * PI / 48.0,
+                time.elapsed_secs() * PI / scale_inv,
             );
         }
     }
@@ -195,11 +202,7 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(LoadState::default());
         app.insert_resource(ClearColor(Color::Srgba(Srgba::hex("#000000").unwrap())));
-        // app.insert_resource(AmbientLight {
-        //     color: Color::srgb(0.05, 0.07, 0.1),
-        //     brightness: 500.,
-        //     affects_lightmapped_meshes: false,
-        // });
+        app.add_plugins(PhysicsPlugins::default());
         app.insert_resource(AmbientLight::NONE);
         app.add_plugins(AutoExposurePlugin);
         app.add_systems(

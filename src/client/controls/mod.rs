@@ -3,7 +3,7 @@ use bevy_renet::client_connected;
 use bevy_renet::renet::RenetClient;
 
 use crate::client::network::encryption::{Nonce, SskStore};
-use crate::client::world::player;
+use crate::client::world::{MainCamera, player};
 use crate::client::{AppState, PreviousAppState};
 use crate::common::network::ClientMessage;
 
@@ -15,7 +15,8 @@ impl ControlsPlugin {
         app_state: Res<State<AppState>>,
         mut next_state: ResMut<NextState<AppState>>,
         mut commands: Commands,
-        mut player_transform: Query<&mut Transform, With<player::Player>>,
+        mut player_transform: Query<&mut Transform, (With<player::Player>, Without<MainCamera>)>,
+        mut camera_transform: Query<&mut Transform, (With<MainCamera>, Without<player::Player>)>,
         time: Res<Time>,
     ) {
         for key_pressed in keyboard.get_pressed() {
@@ -34,10 +35,22 @@ impl ControlsPlugin {
                         .expect("Multiple Players exist.");
 
                     transform.translation.z += 5. * time.delta_secs();
+
+                    let mut transform = camera_transform
+                        .single_mut()
+                        .expect("Multiple Players exist.");
+
+                    transform.translation.z += 5. * time.delta_secs();
                 }
 
                 KeyCode::KeyA => {
                     let mut transform = player_transform
+                        .single_mut()
+                        .expect("Multiple Players exist.");
+
+                    transform.translation.x += 5. * time.delta_secs();
+
+                    let mut transform = camera_transform
                         .single_mut()
                         .expect("Multiple Players exist.");
 
@@ -50,10 +63,22 @@ impl ControlsPlugin {
                         .expect("Multiple Players exist.");
 
                     transform.translation.z -= 5. * time.delta_secs();
+
+                    let mut transform = camera_transform
+                        .single_mut()
+                        .expect("Multiple Players exist.");
+
+                    transform.translation.z -= 5. * time.delta_secs();
                 }
 
                 KeyCode::KeyD => {
                     let mut transform = player_transform
+                        .single_mut()
+                        .expect("Multiple Players exist.");
+
+                    transform.translation.x -= 5. * time.delta_secs();
+
+                    let mut transform = camera_transform
                         .single_mut()
                         .expect("Multiple Players exist.");
 
