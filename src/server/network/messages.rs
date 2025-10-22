@@ -1,6 +1,5 @@
 use bevy::prelude::*;
-use bevy_renet::renet::{DefaultChannel, RenetServer};
-use bincode::config;
+use bevy_renet::renet::RenetServer;
 use cryptoxide::chacha20poly1305::ChaCha20Poly1305;
 use fips203::traits::SerDes;
 

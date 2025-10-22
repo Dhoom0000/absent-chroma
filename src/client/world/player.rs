@@ -2,12 +2,12 @@ use std::{f32::consts::PI, path::Path};
 
 use avian3d::prelude::*;
 use bevy::{
-    camera::visibility::{NoFrustumCulling, RenderLayers},
+    camera::visibility::RenderLayers,
     prelude::*,
     scene::SceneInstanceReady,
 };
 
-use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD, world::LoadState};
+use crate::client::{AppState, LAYER_PLAYER, world::LoadState};
 
 pub struct PlayerPlugin;
 

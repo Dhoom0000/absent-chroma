@@ -1,5 +1,7 @@
 /target
 /assets
+stats.*
+
 
 *.env
 

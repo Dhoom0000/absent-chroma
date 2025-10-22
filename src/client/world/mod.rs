@@ -4,11 +4,10 @@ use bevy::{
     camera::visibility::RenderLayers,
     core_pipeline::{Skybox, tonemapping::Tonemapping},
     light::{
-        AtmosphereEnvironmentMapLight, CascadeShadowConfigBuilder, SunDisk, VolumetricFog,
-        VolumetricLight, light_consts::lux,
+        AtmosphereEnvironmentMapLight, CascadeShadowConfigBuilder, SunDisk, light_consts::lux,
     },
     math::cubic_splines::LinearSpline,
-    pbr::{Atmosphere, AtmosphereSettings, ScreenSpaceAmbientOcclusion},
+    pbr::{Atmosphere, AtmosphereSettings},
     post_process::{
         auto_exposure::{AutoExposure, AutoExposureCompensationCurve, AutoExposurePlugin},
         bloom::Bloom,

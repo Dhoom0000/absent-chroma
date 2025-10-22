@@ -1,15 +1,13 @@
 use avian3d::prelude::*;
 use bevy::{
     asset::RenderAssetUsages,
-    camera::visibility::{NoFrustumCulling, RenderLayers},
-    light::FogVolume,
+    camera::visibility::RenderLayers,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
-    render::render_resource::Face,
 };
-use noiz::{cell_noise::PerNearestPoint, prelude::*, rng::NoiseRng};
+use noiz::prelude::*;
 
-use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD, world::LoadState};
+use crate::client::{AppState, LAYER_WORLD, world::LoadState};
 
 pub struct ScenePlugin;
 
