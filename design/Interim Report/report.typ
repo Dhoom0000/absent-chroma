@@ -138,7 +138,7 @@ By developing this project, my goal is to learn low-level concepts involved with
 #pagebreak()
 
 = Description of 1-2-1 employability engagement
-I had a very productive one-to-one meeting with adviser _Judy Edwards_ from the Employability and Careers Advice team on _Wednesday, 24 September 2025_.
+I had a very productive one-to-one meeting with advisor _Judy Edwards_ from the Employability and Careers Advice team on _Wednesday, 24 September 2025_.
 
 I had my CV and LinkedIn profile reviewed with care. She suggested many minor as well as major changes that I needed to make to make my CV noticable to the employer and also ATS-friendly. I have already made those changes, and will submit for another CV review soon.
 
@@ -153,7 +153,8 @@ We also discussed what platforms I should use to search and apply for jobs, what
 - AWS deployment and network latency challenges.
 - Limited accessibility/multiplayer testing feedback.
 === Mitigations
-- #lorem(100)
+The project involves high technical complexity with cryptography, HRTF audio, procedural generation, and networking. This will be managed by breaking tasks into smaller modules, using existing Rust/Bevy libraries, and testing prototypes frequently. Performance and compatibility issues across platforms will be mitigated through profiling, optimization, and cross-platform testing. AWS deployment and network latency will be handled by local simulations, incremental scaling, and server-authoritative design. Limited accessibility and multiplayer testing will be addressed by early feedback from diverse testers and debug tools for sensory systems.
+
 == Next steps
 _In short term_, I plan on pursuing further studies immediately after graduation. I have already secured a place in M.Sc. Cyber Security at ARU starting January 2026. I made this reckless but calculated decision due to several reasons. Foremost, the job market is really tough as of now with a lot of competition even for entry level positions. Moreover, if I complete my postgraduate before my loan repayment period starts, it will help stabilize my finances in the long term. I also hope to learn a lot and enter the computing field confident in my work and project experiences.
 
@@ -164,9 +165,10 @@ A great risk would be having no real work experience when I complete my Masters 
 _In long term_, I plan on finding a stable and yet opportunistic field to work in to grow my knowledge and lifestyle. I would also look into getting a teaching license and training and also a PhD while I'm at it.
 
 == Career Risks
-- #lorem(100)
+Completing postgraduate studies without substantial work experience may limit immediate job opportunities. Shifting focus to a specialized M.Sc. in Cyber Security could create a temporary skill gap in general software development. Balancing open-source projects and hobbies alongside studies risks delaying career-oriented progress.
+
 === Mitigations
-- #lorem(20)
+To mitigate these risks, the game project will be open-sourced with full documentation to strengthen the portfolio. Short-term internships or work placements will provide practical experience in security and development. Careful time management will ensure academic milestones remain the priority while still allowing for personal projects and hobbies.
 
 = C.V.
 

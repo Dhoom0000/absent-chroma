@@ -3,6 +3,8 @@ use bevy_renet::client_connected;
 use bevy_renet::renet::RenetClient;
 
 use crate::client::network::encryption::{Nonce, SskStore};
+use crate::client::world::enemy::Enemy;
+use crate::client::world::player::Player;
 use crate::client::world::{MainCamera, player};
 use crate::client::{AppState, PreviousAppState};
 use crate::common::network::ClientMessage;
@@ -15,8 +17,18 @@ impl ControlsPlugin {
         app_state: Res<State<AppState>>,
         mut next_state: ResMut<NextState<AppState>>,
         mut commands: Commands,
-        mut player_transform: Query<&mut Transform, (With<player::Player>, Without<MainCamera>)>,
-        mut camera_transform: Query<&mut Transform, (With<MainCamera>, Without<player::Player>)>,
+        mut player_transform: Query<
+            &mut Transform,
+            (With<Player>, Without<MainCamera>, Without<Enemy>),
+        >,
+        mut camera_transform: Query<
+            &mut Transform,
+            (With<MainCamera>, Without<Player>, Without<Enemy>),
+        >,
+        mut enemy_transform: Query<
+            &mut Transform,
+            (With<Enemy>, Without<Player>, Without<MainCamera>),
+        >,
         time: Res<Time>,
     ) {
         for key_pressed in keyboard.get_pressed() {
@@ -34,6 +46,10 @@ impl ControlsPlugin {
                         .single_mut()
                         .expect("Multiple Players exist.");
 
+                    if transform.translation.z >= 45. {
+                        break;
+                    }
+
                     transform.translation.z += 5. * time.delta_secs();
 
                     let mut transform = camera_transform
@@ -47,6 +63,10 @@ impl ControlsPlugin {
                     let mut transform = player_transform
                         .single_mut()
                         .expect("Multiple Players exist.");
+
+                    if transform.translation.x >= 45. {
+                        break;
+                    }
 
                     transform.translation.x += 5. * time.delta_secs();
 
@@ -62,6 +82,10 @@ impl ControlsPlugin {
                         .single_mut()
                         .expect("Multiple Players exist.");
 
+                    if transform.translation.z <= -45. {
+                        break;
+                    }
+
                     transform.translation.z -= 5. * time.delta_secs();
 
                     let mut transform = camera_transform
@@ -76,6 +100,10 @@ impl ControlsPlugin {
                         .single_mut()
                         .expect("Multiple Players exist.");
 
+                    if transform.translation.x <= -45. {
+                        break;
+                    }
+
                     transform.translation.x -= 5. * time.delta_secs();
 
                     let mut transform = camera_transform
@@ -84,8 +112,33 @@ impl ControlsPlugin {
 
                     transform.translation.x -= 5. * time.delta_secs();
                 }
+
+                KeyCode::KeyL => {
+                    let player_transform = player_transform
+                        .single_mut()
+                        .expect("Multiple Players exist.");
+
+                    for enemy_transform in &mut enemy_transform {
+                        if (enemy_transform.translation.x - player_transform.translation.x).abs()
+                            <= 7.
+                            && (enemy_transform.translation.z - player_transform.translation.z)
+                                .abs()
+                                <= 7.
+                        {
+                            info!("Player attack!");
+                        }
+                    }
+                }
+
                 _ => {}
             }
+        }
+
+        let mut transform = player_transform
+            .single_mut()
+            .expect("Multiple Players exist.");
+        if transform.translation.y <= -10. {
+            transform.translation.y = 15.;
         }
     }
 
@@ -115,9 +168,9 @@ impl ControlsPlugin {
 impl Plugin for ControlsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            Update,
+            FixedUpdate,
             (Self::keyboard_input).run_if(in_state(AppState::InGame)),
         );
-        app.add_systems(Update, (Self::send_ping).run_if(client_connected));
+        app.add_systems(FixedUpdate, (Self::send_ping).run_if(client_connected));
     }
 }

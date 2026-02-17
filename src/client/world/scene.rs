@@ -4,6 +4,7 @@ use bevy::{
     camera::visibility::RenderLayers,
     mesh::{Indices, PrimitiveTopology},
     prelude::*,
+    render::render_resource::Face,
 };
 use noiz::prelude::*;
 
@@ -18,20 +19,21 @@ impl ScenePlugin {
         mut meshes: ResMut<Assets<Mesh>>,
         mut load_state: ResMut<LoadState>,
     ) {
-        let noise =
-            Noise::<MixCellGradients<OrthoGrid, Smoothstep, QuickGradients, true>>::default();
+        let noise = Noise::<common_noise::Perlin>::default();
 
         let width = 100;
         let depth = 100;
 
         let scale = 0.1;
+        let height_scale = 2.0;
 
         let mut heights = vec![0.0; width * depth];
         for x in 0..width {
             for z in 0..depth {
                 let nx = x as f32 * scale;
                 let nz = z as f32 * scale;
-                heights[x * depth + z] = noise.sample(Vec2::new(nx, nz));
+                let height: f32 = noise.sample(Vec2::new(nx, nz));
+                heights[x * depth + z] = height * height_scale;
             }
         }
 
@@ -101,18 +103,19 @@ impl ScenePlugin {
         commands.spawn((
             Mesh3d(meshes.add(mesh)),
             MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::srgba(0.4, 0.8, 0.3, 1.),
+                base_color: Color::srgb(0.4, 0.8, 0.3),
                 perceptual_roughness: 1.,
+                alpha_mode: AlphaMode::Blend,
                 depth_bias: -100.,
-                alpha_mode: AlphaMode::Premultiplied,
-                cull_mode: None,
+                cull_mode: Some(Face::Back),
+                thickness: 1.0,
                 ..default()
             })),
-            Transform::from_xyz(-(width as f32) / 2.0, -1.0, -(depth as f32) / 2.0),
+            Transform::from_xyz(-(width as f32) / 2.0, -2.0, -(depth as f32) / 2.0),
             RenderLayers::layer(LAYER_WORLD),
             RigidBody::Static,
             ColliderConstructor::TrimeshFromMesh,
-            CollisionMargin(0.1),
+            CollisionMargin(0.01),
         ));
 
         load_state.terrain = true;

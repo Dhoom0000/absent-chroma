@@ -2,8 +2,7 @@ use std::{f32::consts::PI, path::Path};
 
 use avian3d::prelude::*;
 use bevy::{
-    camera::visibility::RenderLayers,
-    prelude::*,
+    camera::visibility::RenderLayers, light::CascadeShadowConfigBuilder, prelude::*,
     scene::SceneInstanceReady,
 };
 
@@ -30,32 +29,37 @@ impl PlayerPlugin {
         let scene = asset_server
             .load(GltfAssetLabel::Scene(0).from_asset(Path::new("models").join("malfoy.glb")));
 
+        let cascade_shadow_config = CascadeShadowConfigBuilder {
+            first_cascade_far_bound: 0.3,
+            maximum_distance: 3.0,
+            ..Default::default()
+        }
+        .build();
+
         commands
             .spawn((
                 SceneRoot(scene.clone()),
                 Player,
                 RigidBody::Dynamic,
-                Transform::from_xyz(0.0, 0., 1.0)
-                    .looking_at(Vec3::ZERO, Vec3::Y)
-                    .with_scale(Vec3::splat(1.)),
-                // Collider::capsule(1. / 2., 0.01),
+                Transform::from_xyz(0.0, 0., 2.0).with_scale(Vec3::splat(1.)),
                 ColliderConstructorHierarchy::new(ColliderConstructor::Capsule {
-                    radius: 0.01,
-                    height: 0.01,
+                    radius: 0.1,
+                    height: 0.1,
                 }),
                 LockedAxes::ROTATION_LOCKED,
             ))
             .with_children(|parent| {
                 parent.spawn((
                     PointLight {
-                        intensity: 100_000.,
+                        intensity: 100_00.,
                         color: Color::srgba(1.0, 0.55, 0.0, 1.),
                         range: 1_000.,
                         shadows_enabled: true,
                         ..Default::default()
                     },
+                    cascade_shadow_config,
                     RenderLayers::layer(LAYER_PLAYER),
-                    Transform::from_xyz(-1.5, 0.2, 0.0),
+                    Transform::from_xyz(0.8, 0.5, 0.5),
                 ));
             });
     }
@@ -72,10 +76,7 @@ impl PlayerPlugin {
             entity: Entity,
             layer: RenderLayers,
         ) {
-            commands.entity(entity).insert((
-                layer,
-                // CollisionMargin(0.1),
-            ));
+            commands.entity(entity).insert((layer,));
 
             if let Ok(children) = children_query.get(entity) {
                 for &child in children {

@@ -13,6 +13,7 @@ fn main() {
     } else if example_path.exists() {
         // Otherwise, load .env.example as fallback
         from_path(example_path).unwrap();
+        println!("Warning!!! Example Private Key loaded !!!");
     } else {
         // Neither file exists - optionally return error or ignore
         panic!("No secrets.env or .env.example found.");

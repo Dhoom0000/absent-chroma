@@ -7,19 +7,22 @@ use bevy::{
         AtmosphereEnvironmentMapLight, CascadeShadowConfigBuilder, SunDisk, light_consts::lux,
     },
     math::cubic_splines::LinearSpline,
-    pbr::{Atmosphere, AtmosphereSettings},
+    pbr::{Atmosphere, AtmosphereSettings, DefaultOpaqueRendererMethod},
     post_process::{
         auto_exposure::{AutoExposure, AutoExposureCompensationCurve, AutoExposurePlugin},
         bloom::Bloom,
+        effect_stack::ChromaticAberration,
     },
     prelude::*,
-    render::view::Hdr,
+    render::{render_resource::LoadOp, view::Hdr},
 };
 
 use std::{f32::consts::PI, path::Path};
 
 use crate::client::{AppState, LAYER_PLAYER, LAYER_WORLD};
 
+pub mod battle;
+pub mod enemy;
 pub mod player;
 pub mod scene;
 
@@ -46,7 +49,7 @@ impl WorldPlugin {
     fn lights(mut commands: Commands, mut load_state: ResMut<LoadState>) {
         let cascade_shadow_config = CascadeShadowConfigBuilder {
             first_cascade_far_bound: 0.3,
-            maximum_distance: 10.0,
+            maximum_distance: 3.0,
             ..Default::default()
         }
         .build();
@@ -145,6 +148,10 @@ impl WorldPlugin {
                     ..Default::default()
                 },
                 TemporalAntiAliasing::default(),
+                // ChromaticAberration {
+                //     intensity: 0.40,
+                //     ..Default::default()
+                // },
             ));
 
         load_state.camera = true;
@@ -217,6 +224,8 @@ impl Plugin for WorldPlugin {
         app.add_systems(Update, Self::sun_cycle.run_if(in_state(AppState::InGame)));
 
         app.add_plugins(player::PlayerPlugin);
+        app.add_plugins(enemy::EnemyPlugin);
         app.add_plugins(scene::ScenePlugin);
+        app.add_plugins(battle::BattlePlugin);
     }
 }

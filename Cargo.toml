@@ -13,7 +13,7 @@ path = "src/server_m.rs"
 
 
 [dependencies]
-audionimbus = "0.8.3"
+audionimbus = "0.9.1"
 bevy = { version = "0.17.2", features = ["bevy_gltf", "bevy_solari", "ktx2", "wayland", "web", "webgpu"] }
 fips203 = "0.4.3"
 bevy_renet = { git = "https://github.com/lucaspoffo/renet.git", rev= "ce4e3a09fd061428e146a9d88d1fb29d7d9bc474" }
