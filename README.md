@@ -178,11 +178,6 @@ The project serves as both a portfolio-quality game and a technical exploration 
 
 ---
 
-**Status:** In active development.
+**Status:** Halted development. Reached MVP goal.
 
 ---
-
-### Notes / Assumptions
-
-* Beacon repositioning logic is experimental and may change. 
-* Exact cryptographic handshake flow inferred from dependencies; implementation details not inspected directly. 
